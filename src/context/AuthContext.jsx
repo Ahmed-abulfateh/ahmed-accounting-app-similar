@@ -12,7 +12,40 @@ export function AuthProvider({ children }) {
   const hasVerifiedRef = useRef(false)
   const loggingOutRef = useRef(false)
 
-  const getApiBase = () => import.meta.env.VITE_API_URL || 'http://localhost:4000'
+  const getApiBase = () => {
+    const configured = (import.meta.env.VITE_API_URL || '').trim()
+    if (configured) {
+      return configured.replace(/\/$/, '')
+    }
+
+    if (typeof window !== 'undefined') {
+      const { origin, hostname } = window.location
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:4000'
+      }
+      return origin
+    }
+
+    return 'http://localhost:4000'
+  }
+
+  const getNetworkErrorMessage = () => {
+    const apiBase = getApiBase()
+    return `Unable to reach server (${apiBase}). Check backend status, CORS, and VITE_API_URL.`
+  }
+
+  const parseResponseData = async (res) => {
+    const raw = await res.text()
+    if (!raw) {
+      return {}
+    }
+
+    try {
+      return JSON.parse(raw)
+    } catch (_error) {
+      throw new Error(`Server returned non-JSON response (${res.status})`)
+    }
+  }
 
   const clearPendingSave = () => {
     if (saveTimeoutRef.current) {
@@ -142,7 +175,7 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name }),
       })
-      const data = await res.json()
+      const data = await parseResponseData(res)
       if (data.ok) {
         await switchStoreUser(data.user.id)
         localStorage.setItem('authToken', data.token)
@@ -153,6 +186,9 @@ export function AuthProvider({ children }) {
       }
       throw new Error(data.message || 'Signup failed')
     } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error(getNetworkErrorMessage())
+      }
       throw error
     }
   }
@@ -164,7 +200,7 @@ export function AuthProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
-      const data = await res.json()
+      const data = await parseResponseData(res)
       if (data.ok) {
         await switchStoreUser(data.user.id)
         localStorage.setItem('authToken', data.token)
@@ -175,6 +211,9 @@ export function AuthProvider({ children }) {
       }
       throw new Error(data.message || 'Login failed')
     } catch (error) {
+      if (error instanceof TypeError) {
+        throw new Error(getNetworkErrorMessage())
+      }
       throw error
     }
   }

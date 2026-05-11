@@ -12,6 +12,13 @@ Accounting workspace with JWT authentication and per-user data isolation.
 4. Open the app:
 	- `http://localhost:5173` (or the next port shown by Vite)
 
+Troubleshooting:
+
+- If signup/login shows `Failed to fetch`, verify:
+	- Backend is running on `http://localhost:4000`.
+	- `VITE_API_URL` points to your backend in deployed environments.
+	- `FRONTEND_URL` includes your frontend origin for CORS.
+
 ## Authentication and Data Isolation
 
 - Users create accounts with `POST /api/auth/signup`.
