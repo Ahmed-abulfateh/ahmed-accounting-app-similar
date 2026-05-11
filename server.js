@@ -2,12 +2,17 @@ import express from 'express'
 import cors from 'cors'
 import nodemailer from 'nodemailer'
 import dotenv from 'dotenv'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 dotenv.config()
 
 const app = express()
 const PORT = Number(process.env.PORT || 4000)
 const allowedOrigins = buildAllowedOrigins(process.env.FRONTEND_URL || 'http://localhost:5173')
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const distPath = path.join(__dirname, 'dist')
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -79,6 +84,12 @@ app.post('/api/email/invoice-status', async (req, res) => {
   } catch (error) {
     return res.status(500).json({ ok: false, message: error.message || 'Failed to send email' })
   }
+})
+
+// Serve frontend for single-service deployments (e.g. Render web service).
+app.use(express.static(distPath))
+app.get(/.*/, (_req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'))
 })
 
 app.listen(PORT, () => {

@@ -3,10 +3,12 @@ services:
     name: ahmed-accounting-api
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
+      - key: VITE_BASE_PATH
+        value: /
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
@@ -24,11 +26,3 @@ services:
       - key: JWT_SECRET
         sync: false
 
-  - type: web
-    name: ahmed-accounting-web
-    runtime: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_URL
-        value: https://ahmed-accounting-api.onrender.com
