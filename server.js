@@ -7,9 +7,18 @@ dotenv.config()
 
 const app = express()
 const PORT = Number(process.env.PORT || 4000)
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173'
+const allowedOrigins = buildAllowedOrigins(process.env.FRONTEND_URL || 'http://localhost:5173')
 
-app.use(cors({ origin: FRONTEND_URL }))
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (no Origin) and configured frontend origins.
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+      return
+    }
+    callback(new Error(`CORS blocked for origin: ${origin}`))
+  },
+}))
 app.use(express.json())
 
 const transporter = nodemailer.createTransport({
@@ -110,4 +119,11 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;')
+}
+
+function buildAllowedOrigins(rawOriginValue) {
+  return rawOriginValue
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
 }
