@@ -79,6 +79,16 @@ const useStore = create(
       expenses: SEED_EXPENSES,
       journalEntries: SEED_JOURNAL_ENTRIES,
       company: { name: 'Ahmed Accounting Co.', currency: 'USD', fiscalYear: 'January', email: 'info@ahmedco.com', phone: '+1-555-1000', address: '1 Business Park, Suite 100' },
+      appSettings: {
+        auth: {
+          requireTwoFactor: false,
+          sessionTimeoutMinutes: 30,
+          failedAttemptsLimit: 5,
+          passwordMinLength: 10,
+          passwordRequireSymbols: true,
+          passwordRequireNumbers: true,
+        },
+      },
 
       // ── accounts ──
       addAccount: (account) => set((s) => ({ accounts: [...s.accounts, { ...account, id: uuidv4(), balance: 0 }] })),
@@ -129,6 +139,19 @@ const useStore = create(
 
       // ── company ──
       updateCompany: (data) => set((s) => ({ company: { ...s.company, ...data } })),
+
+      // ── app settings ──
+      updateAppSettings: (data) =>
+        set((s) => ({
+          appSettings: {
+            ...s.appSettings,
+            ...data,
+            auth: {
+              ...s.appSettings.auth,
+              ...(data.auth || {}),
+            },
+          },
+        })),
     }),
     { name: 'ahmed-accounting-storage' }
   )

@@ -3,7 +3,7 @@ import useStore from '../../store/useStore'
 import PageHeader from '../../components/ui/PageHeader'
 import Modal from '../../components/ui/Modal'
 import { fmt, fmtDate, statusBadge } from '../../utils/format'
-import { Plus, Pencil, Trash2, Search, Eye, Send } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Eye, Send, Download } from 'lucide-react'
 
 const emptyForm = {
   customerId: '', date: '', dueDate: '', taxRate: 10,
@@ -66,13 +66,44 @@ export default function InvoicesList() {
 
   const totals = calcTotals(form.items, form.taxRate)
 
+  const exportCsv = () => {
+    const rows = filtered.map((inv) => ({
+      number: inv.number,
+      customer: customerName(inv.customerId),
+      date: inv.date,
+      dueDate: inv.dueDate || '',
+      status: inv.status,
+      subtotal: Number(inv.subtotal || 0).toFixed(2),
+      tax: Number(inv.tax || 0).toFixed(2),
+      total: Number(inv.total || 0).toFixed(2),
+    }))
+
+    const header = ['Invoice Number', 'Customer', 'Invoice Date', 'Due Date', 'Status', 'Subtotal', 'Tax', 'Total']
+    const body = rows.map((r) => [r.number, r.customer, r.date, r.dueDate, r.status, r.subtotal, r.tax, r.total])
+    const csv = [header, ...body].map((line) => line.map(csvEscape).join(',')).join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    const stamp = new Date().toISOString().slice(0, 10)
+    link.download = `invoices-${stamp}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="p-8">
       <PageHeader
         title="Invoices"
         subtitle="Manage customer invoices"
         actions={
-          <button className="btn-primary" onClick={openAdd}><Plus size={16} /> New Invoice</button>
+          <>
+            <button className="btn-secondary" onClick={exportCsv}><Download size={16} /> Export CSV</button>
+            <button className="btn-primary" onClick={openAdd}><Plus size={16} /> New Invoice</button>
+          </>
         }
       />
 
@@ -246,4 +277,12 @@ export default function InvoicesList() {
       )}
     </div>
   )
+}
+
+function csvEscape(value) {
+  const raw = String(value ?? '')
+  if (raw.includes(',') || raw.includes('"') || raw.includes('\n')) {
+    return `"${raw.replaceAll('"', '""')}"`
+  }
+  return raw
 }

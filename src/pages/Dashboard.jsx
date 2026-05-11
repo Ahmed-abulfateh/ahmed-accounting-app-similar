@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import useStore from '../store/useStore'
 import { fmt, fmtDate, statusBadge } from '../utils/format'
 import {
@@ -28,22 +29,44 @@ export default function Dashboard() {
   const customers = useStore((s) => s.customers)
   const company = useStore((s) => s.company)
 
-  const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((a, b) => a + b.total, 0)
-  const totalExpenses = expenses.reduce((a, b) => a + b.amount, 0) + bills.filter(b => b.status === 'paid').reduce((a, b) => a + b.total, 0)
-  const totalReceivable = invoices.filter(i => i.status !== 'paid').reduce((a, b) => a + b.total, 0)
-  const totalPayable = bills.filter(b => b.status !== 'paid').reduce((a, b) => a + b.total, 0)
+  const [rangePreset, setRangePreset] = useState('90d')
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
+
+  const { startDate, endDate } = useMemo(
+    () => getDateRange(rangePreset, customStart, customEnd),
+    [rangePreset, customStart, customEnd]
+  )
+
+  const filteredInvoices = useMemo(
+    () => invoices.filter((i) => isInRange(i.date, startDate, endDate)),
+    [invoices, startDate, endDate]
+  )
+  const filteredBills = useMemo(
+    () => bills.filter((b) => isInRange(b.date, startDate, endDate)),
+    [bills, startDate, endDate]
+  )
+  const filteredExpenses = useMemo(
+    () => expenses.filter((e) => isInRange(e.date, startDate, endDate)),
+    [expenses, startDate, endDate]
+  )
+
+  const totalRevenue = filteredInvoices.filter(i => i.status === 'paid').reduce((a, b) => a + b.total, 0)
+  const totalExpenses = filteredExpenses.reduce((a, b) => a + b.amount, 0) + filteredBills.filter(b => b.status === 'paid').reduce((a, b) => a + b.total, 0)
+  const totalReceivable = filteredInvoices.filter(i => i.status !== 'paid').reduce((a, b) => a + b.total, 0)
+  const totalPayable = filteredBills.filter(b => b.status !== 'paid').reduce((a, b) => a + b.total, 0)
   const netPosition = totalRevenue - totalExpenses
 
-  const expenseByCategory = expenses.reduce((acc, e) => {
+  const expenseByCategory = filteredExpenses.reduce((acc, e) => {
     acc[e.category] = (acc[e.category] || 0) + e.amount
     return acc
   }, {})
   const pieData = Object.entries(expenseByCategory).map(([name, value]) => ({ name, value }))
   const customerById = Object.fromEntries(customers.map((c) => [c.id, c.name]))
 
-  const monthlyData = buildMonthlySeries(invoices, bills, expenses)
+  const monthlyData = buildMonthlySeries(filteredInvoices, filteredBills, filteredExpenses, startDate, endDate)
 
-  const recentInvoices = [...invoices].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)
+  const recentInvoices = [...filteredInvoices].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)
 
   return (
     <div className="p-8">
@@ -52,12 +75,56 @@ export default function Dashboard() {
         <p className="text-sm text-gray-500 mt-1">Financial overview of your business</p>
       </div>
 
+      <div className="card p-4 mb-6 flex flex-col lg:flex-row lg:items-end gap-4">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: '30d', label: 'Last 30 days' },
+            { key: '90d', label: 'Last 90 days' },
+            { key: 'ytd', label: 'Year to date' },
+            { key: 'all', label: 'All time' },
+            { key: 'custom', label: 'Custom' },
+          ].map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setRangePreset(opt.key)}
+              className={`btn ${rangePreset === opt.key ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {rangePreset === 'custom' && (
+          <div className="flex flex-col sm:flex-row gap-3 lg:ml-auto">
+            <div>
+              <label className="form-label">From</label>
+              <input
+                type="date"
+                className="form-input"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="form-label">To</label>
+              <input
+                type="date"
+                className="form-input"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard label="Total Revenue" value={fmt(totalRevenue, company.currency)} sub="Paid invoices" icon={ArrowUpRight} color="bg-cyan-600" />
         <StatCard label="Total Expenses" value={fmt(totalExpenses, company.currency)} sub="Paid bills + expenses" icon={ArrowDownRight} color="bg-rose-500" />
         <StatCard label="Receivable" value={fmt(totalReceivable, company.currency)} sub="Unpaid invoices" icon={FileText} color="bg-amber-500" />
-        <StatCard label="Net Position" value={fmt(netPosition, company.currency)} sub={netPosition >= 0 ? 'Positive cash posture' : 'Needs attention'} icon={Landmark} color={netPosition >= 0 ? 'bg-emerald-600' : 'bg-orange-500'} />
+        <StatCard label="Net Position" value={fmt(netPosition, company.currency)} sub={`${fmt(totalPayable, company.currency)} payables`} icon={Landmark} color={netPosition >= 0 ? 'bg-emerald-600' : 'bg-orange-500'} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -132,6 +199,13 @@ export default function Dashboard() {
                 </tr>
               )
             })}
+            {recentInvoices.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-5 py-10 text-center text-sm text-gray-500">
+                  No invoices in the selected period.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -139,18 +213,20 @@ export default function Dashboard() {
   )
 }
 
-function buildMonthlySeries(invoices, bills, expenses) {
-  const now = new Date()
+function buildMonthlySeries(invoices, bills, expenses, startDate, endDate) {
   const months = []
+  const start = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1)
+  const end = endDate ? new Date(endDate.getFullYear(), endDate.getMonth(), 1) : new Date(new Date().getFullYear(), new Date().getMonth(), 1)
 
-  for (let i = 5; i >= 0; i -= 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+  const cursor = new Date(start)
+  while (cursor <= end) {
     months.push({
-      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      month: d.toLocaleString('en-US', { month: 'short' }),
+      key: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`,
+      month: cursor.toLocaleString('en-US', { month: 'short' }),
       revenue: 0,
       outflow: 0,
     })
+    cursor.setMonth(cursor.getMonth() + 1)
   }
 
   const byKey = Object.fromEntries(months.map((m) => [m.key, m]))
@@ -177,4 +253,37 @@ function buildMonthlySeries(invoices, bills, expenses) {
   })
 
   return months
+}
+
+function getDateRange(preset, customStart, customEnd) {
+  const now = new Date()
+  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+
+  if (preset === 'all') {
+    return { startDate: null, endDate: null }
+  }
+
+  if (preset === 'ytd') {
+    return { startDate: new Date(now.getFullYear(), 0, 1), endDate: endOfDay }
+  }
+
+  if (preset === '30d' || preset === '90d') {
+    const days = preset === '30d' ? 29 : 89
+    const start = new Date(now)
+    start.setDate(now.getDate() - days)
+    start.setHours(0, 0, 0, 0)
+    return { startDate: start, endDate: endOfDay }
+  }
+
+  const start = customStart ? new Date(`${customStart}T00:00:00`) : null
+  const end = customEnd ? new Date(`${customEnd}T23:59:59`) : null
+  return { startDate: start, endDate: end }
+}
+
+function isInRange(value, startDate, endDate) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return false
+  if (startDate && date < startDate) return false
+  if (endDate && date > endDate) return false
+  return true
 }
