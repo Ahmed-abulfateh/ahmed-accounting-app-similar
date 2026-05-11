@@ -51,8 +51,8 @@ export default function Sidebar({ mobileOpen, onClose }) {
     if (mobileOpen) onClose()
   }
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
     handleNavigate()
   }

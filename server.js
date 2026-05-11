@@ -15,6 +15,7 @@ const PORT = Number(process.env.PORT || 4000)
 const allowedOrigins = buildAllowedOrigins(process.env.FRONTEND_URL || 'http://localhost:5173')
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production'
 const MONGODB_URI = process.env.MONGODB_URI
+const MAX_WORKSPACE_PAYLOAD_BYTES = 2 * 1024 * 1024
 
 // Allow all localhost ports in development
 const isDevEnv = process.env.NODE_ENV !== 'production'
@@ -39,7 +40,7 @@ app.use(cors({
     callback(new Error(`CORS blocked for origin: ${origin}`))
   },
 }))
-app.use(express.json())
+app.use(express.json({ limit: '2mb' }))
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -166,7 +167,8 @@ app.put('/api/workspace', authMiddleware, async (req, res) => {
       return res.status(400).json({ ok: false, message: 'Invalid workspace payload' })
     }
 
-    await saveWorkspace(req.userId, workspace)
+    const normalizedWorkspace = normalizeWorkspace(workspace)
+    await saveWorkspace(req.userId, normalizedWorkspace)
     res.json({ ok: true })
   } catch (error) {
     res.status(500).json({ ok: false, message: error.message })
@@ -280,6 +282,13 @@ function buildAllowedOrigins(rawOriginValue) {
 }
 
 async function startServer() {
+  if (!JWT_SECRET || JWT_SECRET === 'dev-secret-key-change-in-production') {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET must be set to a strong value in production')
+    }
+    console.warn('Using default JWT secret in development. Set JWT_SECRET for safer local testing.')
+  }
+
   await connectDatabase()
   app.listen(PORT, () => {
     const storageMode = mongoDb ? 'MongoDB' : 'in-memory fallback'
@@ -296,10 +305,21 @@ async function connectDatabase() {
     const client = new MongoClient(MONGODB_URI)
     await client.connect()
     mongoDb = client.db()
+    await ensureMongoIndexes()
   } catch (error) {
     console.error('MongoDB connection failed, using in-memory fallback:', error.message)
     mongoDb = null
   }
+}
+
+async function ensureMongoIndexes() {
+  if (!mongoDb) {
+    return
+  }
+
+  await mongoDb.collection('users').createIndex({ email: 1 }, { unique: true })
+  await mongoDb.collection('users').createIndex({ id: 1 }, { unique: true })
+  await mongoDb.collection('workspaces').createIndex({ userId: 1 }, { unique: true })
 }
 
 async function findUserByEmail(email) {
@@ -340,6 +360,11 @@ async function getWorkspace(userId) {
 }
 
 async function saveWorkspace(userId, workspace) {
+  const size = Buffer.byteLength(JSON.stringify(workspace), 'utf8')
+  if (size > MAX_WORKSPACE_PAYLOAD_BYTES) {
+    throw new Error('Workspace payload too large')
+  }
+
   if (mongoDb) {
     await mongoDb.collection('workspaces').updateOne(
       { userId },
@@ -356,4 +381,26 @@ async function saveWorkspace(userId, workspace) {
   }
 
   workspaces.set(userId, workspace)
+}
+
+function normalizeWorkspace(workspace) {
+  return {
+    accounts: asArray(workspace.accounts),
+    customers: asArray(workspace.customers),
+    vendors: asArray(workspace.vendors),
+    invoices: asArray(workspace.invoices),
+    bills: asArray(workspace.bills),
+    expenses: asArray(workspace.expenses),
+    journalEntries: asArray(workspace.journalEntries),
+    company: asObject(workspace.company),
+    appSettings: asObject(workspace.appSettings),
+  }
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : []
+}
+
+function asObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 }

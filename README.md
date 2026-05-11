@@ -1,5 +1,34 @@
 # ahmed-accounting-app-similar
 
+Accounting workspace with JWT authentication and per-user data isolation.
+
+## Local Development
+
+1. Copy `.env.example` to `.env` and fill required values.
+2. Install dependencies:
+	- `npm install`
+3. Run frontend + backend together:
+	- `npm run dev:full`
+4. Open the app:
+	- `http://localhost:5173` (or the next port shown by Vite)
+
+## Authentication and Data Isolation
+
+- Users create accounts with `POST /api/auth/signup`.
+- Login uses `POST /api/auth/login`.
+- Token verification uses `POST /api/auth/verify`.
+- User workspace sync uses:
+  - `GET /api/workspace`
+  - `PUT /api/workspace`
+
+Behavior:
+
+- Each authenticated user has isolated accounting data.
+- Workspace data is persisted on backend storage.
+- MongoDB is used when `MONGODB_URI` is available.
+- If MongoDB is unavailable, backend falls back to in-memory storage.
+- Frontend keeps local editing usable and syncs changes in the background.
+
 ## Render Deployment
 
 This project is ready for Render using the blueprint in [render.yaml](render.yaml).
@@ -25,6 +54,12 @@ Set these on the backend service (ahmed-accounting-api):
 - FRONTEND_URL
 - MONGODB_URI
 - JWT_SECRET
+
+Production safety notes:
+
+- `JWT_SECRET` must be set to a strong unique value.
+- The server enforces JWT secret safety in production mode.
+- `FRONTEND_URL` can be comma-separated for multiple origins.
 
 Set this on the frontend service (ahmed-accounting-web):
 

@@ -9,6 +9,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const saveTimeoutRef = useRef(null)
   const skipNextSaveRef = useRef(false)
+  const hasVerifiedRef = useRef(false)
+  const loggingOutRef = useRef(false)
 
   const getApiBase = () => import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
@@ -37,17 +39,22 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const saveWorkspace = async (authToken) => {
+  const saveWorkspace = async (authToken, { keepalive = false } = {}) => {
     try {
       const workspace = useStore.getState().exportWorkspace()
-      await fetch(`${getApiBase()}/api/workspace`, {
+      const res = await fetch(`${getApiBase()}/api/workspace`, {
         method: 'PUT',
+        keepalive,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({ workspace }),
       })
+
+      if (res.status === 401 && !loggingOutRef.current) {
+        await logout({ flush: false })
+      }
     } catch (_error) {
       // Best effort sync only; next update will retry.
     }
@@ -55,12 +62,33 @@ export function AuthProvider({ children }) {
 
   // Verify token on mount
   useEffect(() => {
+    if (hasVerifiedRef.current) {
+      return
+    }
+    hasVerifiedRef.current = true
+
     if (token) {
       verifyToken(token)
     } else {
       setLoading(false)
     }
-  }, [])
+  }, [token])
+
+  useEffect(() => {
+    if (!user || !token) {
+      return
+    }
+
+    const handleBeforeUnload = () => {
+      clearPendingSave()
+      saveWorkspace(token, { keepalive: true })
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [user, token])
 
   useEffect(() => {
     if (!user || !token) {
@@ -97,11 +125,11 @@ export function AuthProvider({ children }) {
         setUser(data.user)
         await loadWorkspace(t)
       } else {
-        logout()
+        await logout({ flush: false })
       }
     } catch (error) {
       console.error('Token verification failed:', error)
-      logout()
+      await logout({ flush: false })
     } finally {
       setLoading(false)
     }
@@ -151,12 +179,17 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const logout = () => {
+  const logout = async ({ flush = true } = {}) => {
+    loggingOutRef.current = true
+    if (flush && user && token) {
+      await saveWorkspace(token, { keepalive: true })
+    }
     clearPendingSave()
-    switchStoreUser(null)
+    await switchStoreUser(null)
     localStorage.removeItem('authToken')
     setToken(null)
     setUser(null)
+    loggingOutRef.current = false
   }
 
   return (
