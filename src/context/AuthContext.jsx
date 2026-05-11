@@ -20,6 +20,7 @@ export function AuthProvider({ children }) {
     try {
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
       const res = await fetch(`${apiBase}/api/auth/verify`, {
+        method: 'POST',
         headers: { Authorization: `Bearer ${t}` },
       })
       if (res.ok) {

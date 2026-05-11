@@ -13,6 +13,10 @@ const app = express()
 const PORT = Number(process.env.PORT || 4000)
 const allowedOrigins = buildAllowedOrigins(process.env.FRONTEND_URL || 'http://localhost:5173')
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production'
+
+// Allow all localhost ports in development
+const isDevEnv = process.env.NODE_ENV !== 'production'
+const localhostPattern = /^http:\/\/localhost:\d+$/
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const distPath = path.join(__dirname, 'dist')
@@ -23,7 +27,8 @@ const users = new Map()
 app.use(cors({
   origin: (origin, callback) => {
     // Allow non-browser requests (no Origin) and configured frontend origins.
-    if (!origin || allowedOrigins.includes(origin)) {
+    // In development, allow all localhost origins
+    if (!origin || allowedOrigins.includes(origin) || (isDevEnv && localhostPattern.test(origin))) {
       callback(null, true)
       return
     }
