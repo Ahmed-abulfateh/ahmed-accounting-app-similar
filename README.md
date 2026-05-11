@@ -36,3 +36,11 @@ Set this on the frontend service (ahmed-accounting-web):
 	- http://localhost:5173,https://your-frontend.onrender.com
 - The backend health endpoint is:
 	- /api/health
+
+## GitHub Pages
+
+The project uses a workflow at [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml) to build with Vite and publish the `dist` folder.
+
+Required GitHub setting:
+
+- In repository Settings > Pages, set Source to GitHub Actions.
