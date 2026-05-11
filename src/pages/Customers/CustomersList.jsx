@@ -146,7 +146,7 @@ export default function CustomersList() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Customers"
         subtitle="Manage your customer contacts"
@@ -159,9 +159,9 @@ export default function CustomersList() {
               onChange={handleImportExcel}
               className="hidden"
             />
-            <button className="btn-secondary" onClick={downloadTemplate}><FileSpreadsheet size={16} /> Template</button>
-            <button className="btn-secondary" onClick={triggerFilePicker}><Upload size={16} /> Import Excel</button>
-            <button className="btn-primary" onClick={openAdd}><Plus size={16} /> New Customer</button>
+            <button className="btn-secondary text-xs sm:text-sm" onClick={downloadTemplate}><FileSpreadsheet size={16} /> Template</button>
+            <button className="btn-secondary text-xs sm:text-sm" onClick={triggerFilePicker}><Upload size={16} /> Import Excel</button>
+            <button className="btn-primary text-xs sm:text-sm" onClick={openAdd}><Plus size={16} /> New</button>
           </>
         }
       />
@@ -174,54 +174,52 @@ export default function CustomersList() {
       )}
 
       <div className="card mb-5 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-          <p className="font-semibold text-slate-800">Excel Upload Schema (Customers Sheet)</p>
+        <div className="px-4 sm:px-5 py-3 border-b border-slate-200 bg-slate-50">
+          <p className="font-semibold text-sm sm:text-base text-slate-800">Excel Upload Schema (Customers Sheet)</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Column</th>
-                <th className="px-4 py-2.5 font-medium">Required</th>
-                <th className="px-4 py-2.5 font-medium">Notes</th>
+                <th className="px-3 sm:px-4 py-2.5 font-medium">Column</th>
+                <th className="px-3 sm:px-4 py-2.5 font-medium">Required</th>
+                <th className="px-3 sm:px-4 py-2.5 font-medium hidden sm:table-cell">Notes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {CUSTOMER_IMPORT_SCHEMA.map((item) => (
                 <tr key={item.column}>
-                  <td className="px-4 py-2.5 font-mono text-slate-700">{item.column}</td>
-                  <td className="px-4 py-2.5 text-slate-700">{item.required}</td>
-                  <td className="px-4 py-2.5 text-slate-500">{item.notes}</td>
+                  <td className="px-3 sm:px-4 py-2.5 font-mono text-slate-700 text-xs">{item.column}</td>
+                  <td className="px-3 sm:px-4 py-2.5 text-slate-700">{item.required}</td>
+                  <td className="px-3 sm:px-4 py-2.5 text-slate-500 hidden sm:table-cell text-xs">{item.notes}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
 
-        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50">
-          <p className="font-semibold text-slate-800">Example Upload Table (2 Customers)</p>
+        <div className="px-4 sm:px-5 py-3 border-t border-slate-200 bg-slate-50">
+          <p className="font-semibold text-sm sm:text-base text-slate-800">Example Upload Table (2 Customers)</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-slate-500">
-                <th className="px-4 py-2.5 font-medium">name</th>
-                <th className="px-4 py-2.5 font-medium">email</th>
-                <th className="px-4 py-2.5 font-medium">phone</th>
-                <th className="px-4 py-2.5 font-medium">address</th>
-                <th className="px-4 py-2.5 font-medium">balance</th>
-                <th className="px-4 py-2.5 font-medium">createdAt</th>
+                <th className="px-3 sm:px-4 py-2.5 font-medium">name</th>
+                <th className="px-3 sm:px-4 py-2.5 font-medium hidden sm:table-cell">email</th>
+                <th className="px-3 sm:px-4 py-2.5 font-medium hidden lg:table-cell">phone</th>
+                <th className="px-3 sm:px-4 py-2.5 font-medium hidden lg:table-cell">address</th>
+                <th className="px-3 sm:px-4 py-2.5 font-medium">balance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {CUSTOMER_IMPORT_EXAMPLE_ROWS.map((row, index) => (
                 <tr key={`${row.email}-${index}`}>
-                  <td className="px-4 py-2.5 text-slate-700">{row.name}</td>
-                  <td className="px-4 py-2.5 text-slate-700">{row.email}</td>
-                  <td className="px-4 py-2.5 text-slate-700">{row.phone}</td>
-                  <td className="px-4 py-2.5 text-slate-700">{row.address}</td>
-                  <td className="px-4 py-2.5 text-slate-700">{row.balance}</td>
-                  <td className="px-4 py-2.5 font-mono text-slate-700">{row.createdAt}</td>
+                  <td className="px-3 sm:px-4 py-2.5 text-slate-700 truncate text-xs">{row.name}</td>
+                  <td className="px-3 sm:px-4 py-2.5 text-slate-700 hidden sm:table-cell truncate text-xs">{row.email}</td>
+                  <td className="px-3 sm:px-4 py-2.5 text-slate-700 hidden lg:table-cell truncate text-xs">{row.phone}</td>
+                  <td className="px-3 sm:px-4 py-2.5 text-slate-700 hidden lg:table-cell truncate text-xs">{row.address}</td>
+                  <td className="px-3 sm:px-4 py-2.5 font-mono text-slate-700 text-xs">{row.balance}</td>
                 </tr>
               ))}
             </tbody>
@@ -229,34 +227,48 @@ export default function CustomersList() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-5">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-          <input className="form-input pl-9 w-64" placeholder="Search customers…" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex gap-3 mb-5 flex-wrap">
+        <div className="relative flex-1 min-w-[160px]">
+          <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+          <input className="form-input pl-9 w-full text-sm" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {filtered.map((c) => (
-          <div key={c.id} className="card p-5 hover:shadow-md transition-shadow">
+          <div key={c.id} className="card p-4 sm:p-5 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3">
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg mb-2">
                   {c.name[0]}
                 </div>
-                <h3 className="font-semibold text-gray-900">{c.name}</h3>
+                <h3 className="font-semibold text-gray-900 text-sm truncate">{c.name}</h3>
                 <p className="text-xs text-gray-400 mt-0.5">Since {fmtDate(c.createdAt)}</p>
               </div>
-              <div className="flex gap-1">
-                <button onClick={() => openEdit(c)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600"><Pencil size={14} /></button>
-                <button onClick={() => deleteCustomer(c.id)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+              <div className="flex gap-1 flex-shrink-0">
+                <button 
+                  onClick={() => openEdit(c)} 
+                  className="btn-small bg-white border border-gray-200 text-gray-400 hover:text-blue-600"
+                  title="Edit customer"
+                  aria-label="Edit customer"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button 
+                  onClick={() => deleteCustomer(c.id)} 
+                  className="btn-small bg-white border border-gray-200 text-gray-400 hover:text-red-600"
+                  title="Delete customer"
+                  aria-label="Delete customer"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
-            <div className="space-y-1.5 text-sm text-gray-500">
-              {c.email && <div className="flex items-center gap-2"><Mail size={13} /><span>{c.email}</span></div>}
-              {c.phone && <div className="flex items-center gap-2"><Phone size={13} /><span>{c.phone}</span></div>}
+            <div className="space-y-1.5 text-xs text-gray-500 mb-4">
+              {c.email && <div className="flex items-center gap-2 truncate"><Mail size={13} /><span className="truncate">{c.email}</span></div>}
+              {c.phone && <div className="flex items-center gap-2 truncate"><Phone size={13} /><span className="truncate">{c.phone}</span></div>}
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
+            <div className="pt-4 border-t border-gray-100 flex justify-between text-xs">
               <span className="text-gray-500">{invoiceCount(c.id)} invoices</span>
               <span className={`font-semibold ${customerBalance(c.id) > 0 ? 'text-amber-600' : 'text-green-600'}`}>
                 {fmt(customerBalance(c.id))} outstanding
@@ -265,7 +277,7 @@ export default function CustomersList() {
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="col-span-3 text-center text-gray-400 py-10">No customers found</p>
+          <p className="col-span-full text-center text-gray-400 py-10 text-sm">No customers found</p>
         )}
       </div>
 
@@ -274,23 +286,23 @@ export default function CustomersList() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="form-label">Name *</label>
-              <input className="form-input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Company or person name" />
+              <input className="form-input text-base" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Company or person name" />
             </div>
             <div>
               <label className="form-label">Email</label>
-              <input type="email" className="form-input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="billing@example.com" />
+              <input type="email" className="form-input text-base" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="billing@example.com" />
             </div>
             <div>
               <label className="form-label">Phone</label>
-              <input className="form-input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1-555-0000" />
+              <input className="form-input text-base" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+1-555-0000" />
             </div>
             <div>
               <label className="form-label">Address</label>
-              <textarea className="form-input" rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <textarea className="form-input text-base" rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" className="btn-secondary" onClick={() => setModal(null)}>Cancel</button>
-              <button type="submit" className="btn-primary">{editing ? 'Save Changes' : 'Create Customer'}</button>
+            <div className="flex justify-end gap-2 pt-4">
+              <button type="button" className="btn-secondary text-sm" onClick={() => setModal(null)}>Cancel</button>
+              <button type="submit" className="btn-primary text-sm">{editing ? 'Save Changes' : 'Create Customer'}</button>
             </div>
           </form>
         </Modal>

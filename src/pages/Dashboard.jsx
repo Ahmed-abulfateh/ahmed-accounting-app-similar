@@ -10,14 +10,14 @@ import { ArrowUpRight, ArrowDownRight, FileText, Landmark } from 'lucide-react'
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
 const StatCard = ({ label, value, sub, icon: Icon, color }) => (
-  <div className="card p-5 flex items-start gap-4">
-    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
-      <Icon size={22} className="text-white" />
+  <div className="card p-4 sm:p-5 flex items-start gap-3 sm:gap-4">
+    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 ${color}`}>
+      <Icon size={18} className="sm:block text-white" />
     </div>
-    <div>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+    <div className="min-w-0 flex-1">
+      <p className="text-xs sm:text-sm text-gray-500">{label}</p>
+      <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-0.5 truncate">{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-0.5 truncate">{sub}</p>}
     </div>
   </div>
 )
@@ -69,13 +69,13 @@ export default function Dashboard() {
   const recentInvoices = [...filteredInvoices].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Financial overview of your business</p>
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-1">Financial overview of your business</p>
       </div>
 
-      <div className="card p-4 mb-6 flex flex-col lg:flex-row lg:items-end gap-4">
+      <div className="card p-3 sm:p-4 mb-6 flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
           {[
             { key: '30d', label: 'Last 30 days' },
@@ -88,7 +88,7 @@ export default function Dashboard() {
               key={opt.key}
               type="button"
               onClick={() => setRangePreset(opt.key)}
-              className={`btn ${rangePreset === opt.key ? 'btn-primary' : 'btn-secondary'}`}
+              className={`btn text-xs sm:text-sm py-2 ${rangePreset === opt.key ? 'btn-primary' : 'btn-secondary'}`}
             >
               {opt.label}
             </button>
@@ -96,21 +96,21 @@ export default function Dashboard() {
         </div>
 
         {rangePreset === 'custom' && (
-          <div className="flex flex-col sm:flex-row gap-3 lg:ml-auto">
-            <div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
               <label className="form-label">From</label>
               <input
                 type="date"
-                className="form-input"
+                className="form-input text-base"
                 value={customStart}
                 onChange={(e) => setCustomStart(e.target.value)}
               />
             </div>
-            <div>
+            <div className="flex-1">
               <label className="form-label">To</label>
               <input
                 type="date"
-                className="form-input"
+                className="form-input text-base"
                 value={customEnd}
                 onChange={(e) => setCustomEnd(e.target.value)}
               />
@@ -120,94 +120,100 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <StatCard label="Total Revenue" value={fmt(totalRevenue, company.currency)} sub="Paid invoices" icon={ArrowUpRight} color="bg-cyan-600" />
         <StatCard label="Total Expenses" value={fmt(totalExpenses, company.currency)} sub="Paid bills + expenses" icon={ArrowDownRight} color="bg-rose-500" />
         <StatCard label="Receivable" value={fmt(totalReceivable, company.currency)} sub="Unpaid invoices" icon={FileText} color="bg-amber-500" />
         <StatCard label="Net Position" value={fmt(netPosition, company.currency)} sub={`${fmt(totalPayable, company.currency)} payables`} icon={Landmark} color={netPosition >= 0 ? 'bg-emerald-600' : 'bg-orange-500'} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         {/* Monthly Performance Chart */}
-        <div className="card p-5 lg:col-span-2">
-          <h2 className="font-semibold text-gray-800 mb-4">Monthly Performance</h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={monthlyData}>
-              <defs>
-                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-              <Tooltip formatter={(v) => fmt(v, company.currency)} />
-              <Area type="monotone" dataKey="revenue"  stroke="#3b82f6" fill="url(#colorRev)" strokeWidth={2} name="Revenue" />
-              <Area type="monotone" dataKey="outflow" stroke="#ef4444" fill="url(#colorExp)" strokeWidth={2} name="Outflow" />
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="card p-4 sm:p-5 lg:col-span-2 overflow-x-auto">
+          <h2 className="font-semibold text-gray-800 mb-4 text-sm sm:text-base">Monthly Performance</h2>
+          <div className="w-full" style={{ minHeight: '240px', minWidth: '100%' }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <AreaChart data={monthlyData}>
+                <defs>
+                  <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} angle={-45} height={60} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v) => fmt(v, company.currency)} />
+                <Area type="monotone" dataKey="revenue"  stroke="#3b82f6" fill="url(#colorRev)" strokeWidth={2} name="Revenue" />
+                <Area type="monotone" dataKey="outflow" stroke="#ef4444" fill="url(#colorExp)" strokeWidth={2} name="Outflow" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Expense Breakdown */}
-        <div className="card p-5">
-          <h2 className="font-semibold text-gray-800 mb-4">Expense Breakdown</h2>
+        <div className="card p-4 sm:p-5 overflow-x-auto">
+          <h2 className="font-semibold text-gray-800 mb-4 text-sm sm:text-base">Expense Breakdown</h2>
           {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
-                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v) => fmt(v, company.currency)} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ minHeight: '240px', minWidth: '100%' }}>
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${(percent*100).toFixed(0)}%`} labelLine={false}>
+                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => fmt(v, company.currency)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="h-[220px] flex items-center justify-center text-sm text-gray-500">No expenses recorded yet.</div>
+            <div className="h-[240px] flex items-center justify-center text-sm text-gray-500">No expenses recorded yet.</div>
           )}
         </div>
       </div>
 
       {/* Recent Invoices */}
-      <div className="card">
-        <div className="p-5 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800">Recent Invoices</h2>
+      <div className="card overflow-hidden">
+        <div className="p-4 sm:p-5 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-800 text-sm sm:text-base">Recent Invoices</h2>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 text-left text-gray-500">
-              <th className="px-5 py-3 font-medium">Number</th>
-              <th className="px-5 py-3 font-medium">Customer</th>
-              <th className="px-5 py-3 font-medium">Date</th>
-              <th className="px-5 py-3 font-medium">Amount</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {recentInvoices.map((inv) => {
-              const customer = customerById[inv.customerId] ?? '—'
-              return (
-                <tr key={inv.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3 font-medium text-blue-600">{inv.number}</td>
-                  <td className="px-5 py-3 text-gray-700">{customer}</td>
-                  <td className="px-5 py-3 text-gray-500">{fmtDate(inv.date)}</td>
-                  <td className="px-5 py-3 font-medium">{fmt(inv.total, company.currency)}</td>
-                  <td className="px-5 py-3"><span className={statusBadge(inv.status)}>{inv.status}</span></td>
-                </tr>
-              )
-            })}
-            {recentInvoices.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-sm text-gray-500">
-                  No invoices in the selected period.
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 text-left text-gray-500">
+                <th className="px-3 sm:px-5 py-3 font-medium">Number</th>
+                <th className="px-3 sm:px-5 py-3 font-medium hidden sm:table-cell">Customer</th>
+                <th className="px-3 sm:px-5 py-3 font-medium">Date</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-right">Amount</th>
+                <th className="px-3 sm:px-5 py-3 font-medium text-right">Status</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {recentInvoices.map((inv) => {
+                const customer = customerById[inv.customerId] ?? '—'
+                return (
+                  <tr key={inv.id} className="hover:bg-gray-50">
+                    <td className="px-3 sm:px-5 py-3 font-medium text-blue-600 truncate">{inv.number}</td>
+                    <td className="px-3 sm:px-5 py-3 text-gray-700 hidden sm:table-cell truncate">{customer}</td>
+                    <td className="px-3 sm:px-5 py-3 text-gray-500 truncate">{fmtDate(inv.date)}</td>
+                    <td className="px-3 sm:px-5 py-3 font-medium text-right whitespace-nowrap">{fmt(inv.total, company.currency)}</td>
+                    <td className="px-3 sm:px-5 py-3 text-right"><span className={statusBadge(inv.status)}>{inv.status}</span></td>
+                  </tr>
+                )
+              })}
+              {recentInvoices.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500">
+                    No invoices in the selected period.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

@@ -30,16 +30,16 @@ export default function Layout() {
     <div className="flex min-h-screen">
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <main className="flex-1 overflow-y-auto">
-        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur">
-          <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/85 backdrop-blur safe-area-inset-top">
+          <div className="px-3 sm:px-6 lg:px-8 py-3 flex items-center justify-between min-h-16">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <button
                 type="button"
-                className="lg:hidden p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+                className="lg:hidden btn-small bg-white border border-slate-200 text-slate-600 flex-shrink-0"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open sidebar"
               >
-                <Menu size={18} />
+                <Menu size={20} />
               </button>
               <div>
                 <h1 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900">{sectionTitle}</h1>

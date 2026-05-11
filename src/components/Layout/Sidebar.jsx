@@ -14,14 +14,14 @@ const NavItem = ({ to, icon: Icon, label, end, onNavigate }) => (
     end={end}
     onClick={onNavigate}
     className={({ isActive }) =>
-      clsx('flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors',
+      clsx('flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-colors min-h-11',
         isActive
           ? 'bg-teal-700 text-white shadow-sm'
-          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900')
+          : 'text-slate-600 active:bg-slate-200 hover:bg-slate-100 hover:text-slate-900')
     }
   >
     <Icon size={18} />
-    {label}
+    <span className="truncate">{label}</span>
   </NavLink>
 )
 

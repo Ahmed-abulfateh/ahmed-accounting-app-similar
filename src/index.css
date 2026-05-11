@@ -39,24 +39,42 @@
 }
 
 @layer components {
+  /* Touch-friendly buttons: minimum 44px tap target */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    min-height: 44px;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .btn:active {
+    transform: scale(0.98);
   }
   .btn-primary {
-    @apply btn text-white shadow-sm hover:shadow-md focus:ring-teal-400;
+    @apply btn text-white shadow-sm focus:ring-teal-400;
     background: linear-gradient(135deg, var(--brand), #0ea5a4);
   }
-  .btn-primary:hover {
+  .btn-primary:hover, .btn-primary:active {
     background: linear-gradient(135deg, var(--brand-strong), #0c8f8f);
+    @apply shadow-md;
   }
   .btn-secondary {
-    @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-300;
+    @apply btn bg-white text-slate-700 border border-slate-200 focus:ring-slate-300;
+  }
+  .btn-secondary:hover, .btn-secondary:active {
+    @apply bg-slate-50;
   }
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm;
+    @apply btn bg-red-600 text-white focus:ring-red-500 shadow-sm;
+  }
+  .btn-danger:hover, .btn-danger:active {
+    @apply bg-red-700;
   }
   .btn-success {
-    @apply btn bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm;
+    @apply btn bg-emerald-600 text-white focus:ring-emerald-500 shadow-sm;
+  }
+  .btn-success:hover, .btn-success:active {
+    @apply bg-emerald-700;
   }
   .card {
     @apply rounded-2xl border border-slate-200/80 shadow-sm;
@@ -66,7 +84,7 @@
     @apply block text-sm font-semibold text-slate-700 mb-1.5;
   }
   .form-input {
-    @apply block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition-colors focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500;
+    @apply block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-base shadow-sm transition-colors focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500;
   }
   .form-select {
     @apply form-input bg-white;
@@ -79,4 +97,14 @@
   .badge-red    { @apply badge bg-rose-100 text-rose-800; }
   .badge-blue   { @apply badge bg-cyan-100 text-cyan-800; }
   .badge-gray   { @apply badge bg-slate-100 text-slate-700; }
+  
+  /* Touch-friendly small buttons */
+  .btn-small {
+    @apply inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg font-semibold text-xs transition-all duration-200 focus:outline-none focus:ring-2;
+    min-height: 36px;
+    min-width: 36px;
+  }
+  .btn-small:active {
+    transform: scale(0.95);
+  }
 }
