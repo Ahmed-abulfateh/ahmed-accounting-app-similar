@@ -3,7 +3,7 @@ import useStore from '../../store/useStore'
 import PageHeader from '../../components/ui/PageHeader'
 import Modal from '../../components/ui/Modal'
 import { fmt, fmtDate, statusBadge } from '../../utils/format'
-import { Plus, Pencil, Trash2, Search, Eye, Send, Download } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Eye, Send, Download, BellRing } from 'lucide-react'
 
 const emptyForm = {
   customerId: '', date: '', dueDate: '', taxRate: 10,
@@ -19,6 +19,7 @@ function calcTotals(items, taxRate) {
 export default function InvoicesList() {
   const invoices      = useStore((s) => s.invoices)
   const customers     = useStore((s) => s.customers)
+  const company       = useStore((s) => s.company)
   const addInvoice    = useStore((s) => s.addInvoice)
   const updateInvoice = useStore((s) => s.updateInvoice)
   const deleteInvoice = useStore((s) => s.deleteInvoice)
@@ -29,6 +30,9 @@ export default function InvoicesList() {
   const [view, setView]       = useState(null)
   const [search, setSearch]   = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
+  const [sendingId, setSendingId] = useState(null)
+
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
   const customerName = (id) => customers.find((c) => c.id === id)?.name ?? '—'
 
@@ -65,6 +69,67 @@ export default function InvoicesList() {
   }
 
   const totals = calcTotals(form.items, form.taxRate)
+
+  const sendInvoiceEmail = async (invoice, emailType) => {
+    const customer = customers.find((c) => c.id === invoice.customerId)
+    if (!customer?.email) {
+      window.alert('Customer does not have an email address.')
+      return false
+    }
+
+    setSendingId(invoice.id)
+    try {
+      const response = await fetch(`${apiBase}/api/email/invoice-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: customer.email,
+          customerName: customer.name,
+          invoiceNumber: invoice.number,
+          invoiceDate: invoice.date,
+          dueDate: invoice.dueDate,
+          total: fmt(invoice.total, company.currency),
+          status: emailType,
+          companyName: company.name,
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok || !result.ok) {
+        throw new Error(result.message || 'Failed to send invoice email')
+      }
+
+      return true
+    } catch (error) {
+      window.alert(`Email failed: ${error.message}`)
+      return false
+    } finally {
+      setSendingId(null)
+    }
+  }
+
+  const handleSendInvoice = async (invoice) => {
+    const ok = await sendInvoiceEmail(invoice, 'sent')
+    if (ok) {
+      updateInvoice(invoice.id, { status: 'sent' })
+      window.alert(`Invoice ${invoice.number} emailed successfully.`)
+    }
+  }
+
+  const handleSendReminder = async (invoice) => {
+    const ok = await sendInvoiceEmail(invoice, 'reminder')
+    if (ok) {
+      window.alert(`Reminder sent for ${invoice.number}.`)
+    }
+  }
+
+  const handleMarkPaid = async (invoice) => {
+    updateInvoice(invoice.id, { status: 'paid' })
+    const ok = await sendInvoiceEmail({ ...invoice, status: 'paid' }, 'paid')
+    if (ok) {
+      window.alert(`Payment confirmation sent for ${invoice.number}.`)
+    }
+  }
 
   const exportCsv = () => {
     const rows = filtered.map((inv) => ({
@@ -145,10 +210,33 @@ export default function InvoicesList() {
                   <div className="flex gap-1 justify-end">
                     <button onClick={() => setView(inv)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600"><Eye size={14} /></button>
                     {inv.status === 'draft' && (
-                      <button onClick={() => updateInvoice(inv.id, { status: 'sent' })} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-green-600"><Send size={14} /></button>
+                      <button
+                        onClick={() => handleSendInvoice(inv)}
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-green-600 disabled:opacity-50"
+                        disabled={sendingId === inv.id}
+                        title="Send invoice email"
+                      >
+                        <Send size={14} />
+                      </button>
+                    )}
+                    {(inv.status === 'sent' || inv.status === 'overdue') && (
+                      <button
+                        onClick={() => handleSendReminder(inv)}
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-amber-600 disabled:opacity-50"
+                        disabled={sendingId === inv.id}
+                        title="Send payment reminder"
+                      >
+                        <BellRing size={14} />
+                      </button>
                     )}
                     {inv.status === 'sent' && (
-                      <button onClick={() => updateInvoice(inv.id, { status: 'paid' })} className="p-1.5 rounded hover:bg-blue-50 text-blue-400 hover:text-blue-700 text-xs font-medium px-2">Mark Paid</button>
+                      <button
+                        onClick={() => handleMarkPaid(inv)}
+                        className="p-1.5 rounded hover:bg-blue-50 text-blue-400 hover:text-blue-700 text-xs font-medium px-2 disabled:opacity-50"
+                        disabled={sendingId === inv.id}
+                      >
+                        Mark Paid
+                      </button>
                     )}
                     <button onClick={() => openEdit(inv)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600"><Pencil size={14} /></button>
                     <button onClick={() => deleteInvoice(inv.id)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
