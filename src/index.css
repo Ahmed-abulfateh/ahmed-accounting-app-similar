@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-page: #f4f6fb;
+    --bg-surface: #ffffff;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --brand: #0f766e;
+    --brand-strong: #0b5f59;
+    --ring: #14b8a6;
+  }
+
+  body {
+    @apply text-slate-900 antialiased;
+    font-family: 'Manrope', sans-serif;
+    background:
+      radial-gradient(circle at 12% 12%, rgba(20, 184, 166, 0.12), transparent 40%),
+      radial-gradient(circle at 88% 4%, rgba(14, 116, 144, 0.1), transparent 35%),
+      var(--bg-page);
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(20, 184, 166, 0.18);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  .btn-primary {
+    @apply btn text-white shadow-sm hover:shadow-md focus:ring-teal-400;
+    background: linear-gradient(135deg, var(--brand), #0ea5a4);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, var(--brand-strong), #0c8f8f);
+  }
+  .btn-secondary {
+    @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-300;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm;
+  }
+  .btn-success {
+    @apply btn bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-sm;
+  }
+  .card {
+    @apply rounded-2xl border border-slate-200/80 shadow-sm;
+    background: color-mix(in srgb, var(--bg-surface) 92%, #f8fafc 8%);
+  }
+  .form-label {
+    @apply block text-sm font-semibold text-slate-700 mb-1.5;
+  }
+  .form-input {
+    @apply block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm shadow-sm transition-colors focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500;
+  }
+  .form-select {
+    @apply form-input bg-white;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+  .badge-green  { @apply badge bg-emerald-100 text-emerald-800; }
+  .badge-yellow { @apply badge bg-amber-100 text-amber-800; }
+  .badge-red    { @apply badge bg-rose-100 text-rose-800; }
+  .badge-blue   { @apply badge bg-cyan-100 text-cyan-800; }
+  .badge-gray   { @apply badge bg-slate-100 text-slate-700; }
+}
