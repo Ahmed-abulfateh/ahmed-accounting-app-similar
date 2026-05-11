@@ -1,11 +1,12 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, BookOpen, Users, Package, FileText,
   ShoppingCart, DollarSign, BarChart2, Settings,
-  TrendingUp, ChevronDown, ChevronRight, X
+  TrendingUp, ChevronDown, ChevronRight, X, LogOut
 } from 'lucide-react'
 import { useState } from 'react'
 import useStore from '../../store/useStore'
+import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
 
 const NavItem = ({ to, icon: Icon, label, end, onNavigate }) => (
@@ -43,8 +44,17 @@ const NavGroup = ({ icon: Icon, label, children }) => {
 
 export default function Sidebar({ mobileOpen, onClose }) {
   const company = useStore((s) => s.company)
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
   const handleNavigate = () => {
     if (mobileOpen) onClose()
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+    handleNavigate()
   }
 
   return (
@@ -107,6 +117,20 @@ export default function Sidebar({ mobileOpen, onClose }) {
 
       <div className="p-3 border-t border-slate-200 space-y-0.5">
         <NavItem to="/settings" icon={Settings} label="Settings" onNavigate={handleNavigate} />
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200 transition-colors min-h-11"
+          title="Sign out of your account"
+        >
+          <LogOut size={18} />
+          <span className="truncate">Sign Out</span>
+        </button>
+        {user && (
+          <div className="px-3 py-2 text-xs text-slate-500 truncate">
+            <p className="font-semibold text-slate-700 truncate">{user.name}</p>
+            <p className="truncate">{user.email}</p>
+          </div>
+        )}
       </div>
       </aside>
     </>

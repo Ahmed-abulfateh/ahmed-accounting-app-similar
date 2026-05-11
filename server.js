@@ -4,15 +4,21 @@ import nodemailer from 'nodemailer'
 import dotenv from 'dotenv'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
 
 dotenv.config()
 
 const app = express()
 const PORT = Number(process.env.PORT || 4000)
 const allowedOrigins = buildAllowedOrigins(process.env.FRONTEND_URL || 'http://localhost:5173')
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const distPath = path.join(__dirname, 'dist')
+
+// Simple in-memory user store (use MongoDB in production)
+const users = new Map()
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -34,6 +40,116 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+})
+
+// JWT middleware - verify token and add user info to request
+const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1]
+  if (!token) {
+    return res.status(401).json({ ok: false, message: 'No token provided' })
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET)
+    req.userId = decoded.userId
+    next()
+  } catch (error) {
+    return res.status(401).json({ ok: false, message: 'Invalid token' })
+  }
+}
+
+// Auth endpoints
+app.post('/api/auth/signup', (req, res) => {
+  try {
+    const { email, password, name } = req.body
+    if (!email || !password || !name) {
+      return res.status(400).json({ ok: false, message: 'Missing email, password, or name' })
+    }
+    if (users.has(email)) {
+      return res.status(400).json({ ok: false, message: 'Email already registered' })
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ ok: false, message: 'Password must be at least 6 characters' })
+    }
+    
+    const salt = crypto.randomBytes(16).toString('hex')
+    const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex')
+    
+    const user = {
+      id: crypto.randomUUID(),
+      email,
+      name,
+      passwordHash: hash,
+      salt,
+      createdAt: new Date().toISOString(),
+    }
+    users.set(email, user)
+    
+    const token = jwt.sign({ userId: user.id, email }, JWT_SECRET, { expiresIn: '7d' })
+    res.json({ 
+      ok: true, 
+      token, 
+      user: { id: user.id, email: user.email, name: user.name } 
+    })
+  } catch (error) {
+    res.status(500).json({ ok: false, message: error.message })
+  }
+})
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, password } = req.body
+    if (!email || !password) {
+      return res.status(400).json({ ok: false, message: 'Missing email or password' })
+    }
+    
+    const user = users.get(email)
+    if (!user) {
+      return res.status(401).json({ ok: false, message: 'Invalid credentials' })
+    }
+    
+    const hash = crypto.pbkdf2Sync(password, user.salt, 1000, 64, 'sha512').toString('hex')
+    if (hash !== user.passwordHash) {
+      return res.status(401).json({ ok: false, message: 'Invalid credentials' })
+    }
+    
+    const token = jwt.sign({ userId: user.id, email }, JWT_SECRET, { expiresIn: '7d' })
+    res.json({ 
+      ok: true, 
+      token,
+      user: { id: user.id, email: user.email, name: user.name }
+    })
+  } catch (error) {
+    res.status(500).json({ ok: false, message: error.message })
+  }
+})
+
+app.post('/api/auth/verify', authMiddleware, (req, res) => {
+  try {
+    // Find user by userId
+    let user
+    for (const u of users.values()) {
+      if (u.id === req.userId) {
+        user = u
+        break
+      }
+    }
+    
+    if (!user) {
+      return res.status(404).json({ ok: false, message: 'User not found' })
+    }
+    
+    res.json({
+      ok: true,
+      user: { id: user.id, email: user.email, name: user.name }
+    })
+  } catch (error) {
+    res.status(500).json({ ok: false, message: error.message })
+  }
+})
+
+app.post('/api/auth/logout', (_req, res) => {
+  // Logout is handled client-side (remove token from localStorage)
+  res.json({ ok: true, message: 'Logged out' })
 })
 
 app.get('/api/health', (_req, res) => {
