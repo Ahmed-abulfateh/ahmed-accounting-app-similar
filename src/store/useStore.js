@@ -3,6 +3,19 @@ import { persist } from 'zustand/middleware'
 import { v4 as uuidv4 } from 'uuid'
 import dayjs from 'dayjs'
 
+const STORAGE_PREFIX = 'ahmed-accounting-storage'
+
+const getStorageName = (userId) => `${STORAGE_PREFIX}-${userId || 'guest'}`
+
+const getActiveUserId = () => {
+  if (typeof window === 'undefined') {
+    return 'guest'
+  }
+  return localStorage.getItem('authUserId') || 'guest'
+}
+
+const getPersistStorageName = () => getStorageName(getActiveUserId())
+
 // ── seed data ──────────────────────────────────────────────────────────────
 const SEED_ACCOUNTS = [
   { id: '1', code: '1000', name: 'Cash',                   type: 'Asset',     normal: 'debit',  balance: 25000, description: 'Cash on hand' },
@@ -66,29 +79,49 @@ const SEED_JOURNAL_ENTRIES = [
   },
 ]
 
+const getSeedState = () => ({
+  accounts: SEED_ACCOUNTS.map((a) => ({ ...a })),
+  customers: SEED_CUSTOMERS.map((c) => ({ ...c })),
+  vendors: SEED_VENDORS.map((v) => ({ ...v })),
+  invoices: SEED_INVOICES.map((i) => ({
+    ...i,
+    items: (i.items || []).map((item) => ({ ...item })),
+  })),
+  bills: SEED_BILLS.map((b) => ({
+    ...b,
+    items: (b.items || []).map((item) => ({ ...item })),
+  })),
+  expenses: SEED_EXPENSES.map((e) => ({ ...e })),
+  journalEntries: SEED_JOURNAL_ENTRIES.map((j) => ({
+    ...j,
+    lines: (j.lines || []).map((line) => ({ ...line })),
+  })),
+  company: {
+    name: 'Ahmed Accounting Co.',
+    currency: 'USD',
+    fiscalYear: 'January',
+    email: 'info@ahmedco.com',
+    phone: '+1-555-1000',
+    address: '1 Business Park, Suite 100',
+  },
+  appSettings: {
+    auth: {
+      requireTwoFactor: false,
+      sessionTimeoutMinutes: 30,
+      failedAttemptsLimit: 5,
+      passwordMinLength: 10,
+      passwordRequireSymbols: true,
+      passwordRequireNumbers: true,
+    },
+  },
+})
+
 // ── store ──────────────────────────────────────────────────────────────────
 const useStore = create(
   persist(
     (set, get) => ({
       // ── state ──
-      accounts: SEED_ACCOUNTS,
-      customers: SEED_CUSTOMERS,
-      vendors: SEED_VENDORS,
-      invoices: SEED_INVOICES,
-      bills: SEED_BILLS,
-      expenses: SEED_EXPENSES,
-      journalEntries: SEED_JOURNAL_ENTRIES,
-      company: { name: 'Ahmed Accounting Co.', currency: 'USD', fiscalYear: 'January', email: 'info@ahmedco.com', phone: '+1-555-1000', address: '1 Business Park, Suite 100' },
-      appSettings: {
-        auth: {
-          requireTwoFactor: false,
-          sessionTimeoutMinutes: 30,
-          failedAttemptsLimit: 5,
-          passwordMinLength: 10,
-          passwordRequireSymbols: true,
-          passwordRequireNumbers: true,
-        },
-      },
+      ...getSeedState(),
 
       // ── accounts ──
       addAccount: (account) => set((s) => ({ accounts: [...s.accounts, { ...account, id: uuidv4(), balance: 0 }] })),
@@ -164,9 +197,27 @@ const useStore = create(
             },
           },
         })),
+
+      resetStore: () => set(() => ({ ...getSeedState() })),
     }),
-    { name: 'ahmed-accounting-storage' }
+    { name: getPersistStorageName() }
   )
 )
+
+export const switchStoreUser = async (userId) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (userId) {
+    localStorage.setItem('authUserId', userId)
+  } else {
+    localStorage.removeItem('authUserId')
+  }
+
+  useStore.persist.setOptions({ name: getStorageName(userId || 'guest') })
+  useStore.getState().resetStore()
+  await useStore.persist.rehydrate()
+}
 
 export default useStore

@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { switchStoreUser } from '../store/useStore'
 
 const AuthContext = createContext()
 
@@ -25,6 +26,7 @@ export function AuthProvider({ children }) {
       })
       if (res.ok) {
         const data = await res.json()
+        await switchStoreUser(data.user.id)
         setUser(data.user)
       } else {
         logout()
@@ -47,6 +49,7 @@ export function AuthProvider({ children }) {
       })
       const data = await res.json()
       if (data.ok) {
+        await switchStoreUser(data.user.id)
         localStorage.setItem('authToken', data.token)
         setToken(data.token)
         setUser(data.user)
@@ -68,6 +71,7 @@ export function AuthProvider({ children }) {
       })
       const data = await res.json()
       if (data.ok) {
+        await switchStoreUser(data.user.id)
         localStorage.setItem('authToken', data.token)
         setToken(data.token)
         setUser(data.user)
@@ -80,6 +84,7 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
+    switchStoreUser(null)
     localStorage.removeItem('authToken')
     setToken(null)
     setUser(null)
