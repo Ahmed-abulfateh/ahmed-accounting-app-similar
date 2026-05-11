@@ -6,6 +6,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
+import { MongoClient } from 'mongodb'
 
 dotenv.config()
 
@@ -13,6 +14,7 @@ const app = express()
 const PORT = Number(process.env.PORT || 4000)
 const allowedOrigins = buildAllowedOrigins(process.env.FRONTEND_URL || 'http://localhost:5173')
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-change-in-production'
+const MONGODB_URI = process.env.MONGODB_URI
 
 // Allow all localhost ports in development
 const isDevEnv = process.env.NODE_ENV !== 'production'
@@ -23,6 +25,8 @@ const distPath = path.join(__dirname, 'dist')
 
 // Simple in-memory user store (use MongoDB in production)
 const users = new Map()
+const workspaces = new Map()
+let mongoDb = null
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -63,13 +67,14 @@ const authMiddleware = (req, res, next) => {
 }
 
 // Auth endpoints
-app.post('/api/auth/signup', (req, res) => {
+app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, name } = req.body
     if (!email || !password || !name) {
       return res.status(400).json({ ok: false, message: 'Missing email, password, or name' })
     }
-    if (users.has(email)) {
+    const existingUser = await findUserByEmail(email)
+    if (existingUser) {
       return res.status(400).json({ ok: false, message: 'Email already registered' })
     }
     if (password.length < 6) {
@@ -87,7 +92,7 @@ app.post('/api/auth/signup', (req, res) => {
       salt,
       createdAt: new Date().toISOString(),
     }
-    users.set(email, user)
+    await createUser(user)
     
     const token = jwt.sign({ userId: user.id, email }, JWT_SECRET, { expiresIn: '7d' })
     res.json({ 
@@ -100,14 +105,14 @@ app.post('/api/auth/signup', (req, res) => {
   }
 })
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body
     if (!email || !password) {
       return res.status(400).json({ ok: false, message: 'Missing email or password' })
     }
     
-    const user = users.get(email)
+    const user = await findUserByEmail(email)
     if (!user) {
       return res.status(401).json({ ok: false, message: 'Invalid credentials' })
     }
@@ -128,16 +133,9 @@ app.post('/api/auth/login', (req, res) => {
   }
 })
 
-app.post('/api/auth/verify', authMiddleware, (req, res) => {
+app.post('/api/auth/verify', authMiddleware, async (req, res) => {
   try {
-    // Find user by userId
-    let user
-    for (const u of users.values()) {
-      if (u.id === req.userId) {
-        user = u
-        break
-      }
-    }
+    const user = await findUserById(req.userId)
     
     if (!user) {
       return res.status(404).json({ ok: false, message: 'User not found' })
@@ -147,6 +145,29 @@ app.post('/api/auth/verify', authMiddleware, (req, res) => {
       ok: true,
       user: { id: user.id, email: user.email, name: user.name }
     })
+  } catch (error) {
+    res.status(500).json({ ok: false, message: error.message })
+  }
+})
+
+app.get('/api/workspace', authMiddleware, async (req, res) => {
+  try {
+    const workspace = await getWorkspace(req.userId)
+    res.json({ ok: true, workspace })
+  } catch (error) {
+    res.status(500).json({ ok: false, message: error.message })
+  }
+})
+
+app.put('/api/workspace', authMiddleware, async (req, res) => {
+  try {
+    const { workspace } = req.body || {}
+    if (!workspace || typeof workspace !== 'object') {
+      return res.status(400).json({ ok: false, message: 'Invalid workspace payload' })
+    }
+
+    await saveWorkspace(req.userId, workspace)
+    res.json({ ok: true })
   } catch (error) {
     res.status(500).json({ ok: false, message: error.message })
   }
@@ -213,9 +234,7 @@ app.get(/.*/, (_req, res) => {
   res.sendFile(path.join(distPath, 'index.html'))
 })
 
-app.listen(PORT, () => {
-  console.log(`Mailer API running on http://localhost:${PORT}`)
-})
+startServer()
 
 function buildInvoiceEmail({ status, customerName, invoiceNumber, total, dueDate, invoiceDate, companyName }) {
   const name = customerName || 'Customer'
@@ -258,4 +277,83 @@ function buildAllowedOrigins(rawOriginValue) {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
+}
+
+async function startServer() {
+  await connectDatabase()
+  app.listen(PORT, () => {
+    const storageMode = mongoDb ? 'MongoDB' : 'in-memory fallback'
+    console.log(`Mailer API running on http://localhost:${PORT} (${storageMode})`)
+  })
+}
+
+async function connectDatabase() {
+  if (!MONGODB_URI) {
+    return
+  }
+
+  try {
+    const client = new MongoClient(MONGODB_URI)
+    await client.connect()
+    mongoDb = client.db()
+  } catch (error) {
+    console.error('MongoDB connection failed, using in-memory fallback:', error.message)
+    mongoDb = null
+  }
+}
+
+async function findUserByEmail(email) {
+  if (mongoDb) {
+    return mongoDb.collection('users').findOne({ email })
+  }
+  return users.get(email)
+}
+
+async function findUserById(id) {
+  if (mongoDb) {
+    return mongoDb.collection('users').findOne({ id })
+  }
+
+  for (const user of users.values()) {
+    if (user.id === id) {
+      return user
+    }
+  }
+
+  return null
+}
+
+async function createUser(user) {
+  if (mongoDb) {
+    await mongoDb.collection('users').insertOne(user)
+    return
+  }
+  users.set(user.email, user)
+}
+
+async function getWorkspace(userId) {
+  if (mongoDb) {
+    const doc = await mongoDb.collection('workspaces').findOne({ userId })
+    return doc?.workspace || null
+  }
+  return workspaces.get(userId) || null
+}
+
+async function saveWorkspace(userId, workspace) {
+  if (mongoDb) {
+    await mongoDb.collection('workspaces').updateOne(
+      { userId },
+      {
+        $set: {
+          userId,
+          workspace,
+          updatedAt: new Date().toISOString(),
+        },
+      },
+      { upsert: true }
+    )
+    return
+  }
+
+  workspaces.set(userId, workspace)
 }

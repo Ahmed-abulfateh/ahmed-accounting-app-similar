@@ -116,6 +116,26 @@ const getSeedState = () => ({
   },
 })
 
+const WORKSPACE_KEYS = [
+  'accounts',
+  'customers',
+  'vendors',
+  'invoices',
+  'bills',
+  'expenses',
+  'journalEntries',
+  'company',
+  'appSettings',
+]
+
+const pickWorkspaceState = (state) => {
+  const workspace = {}
+  WORKSPACE_KEYS.forEach((key) => {
+    workspace[key] = state[key]
+  })
+  return workspace
+}
+
 // ── store ──────────────────────────────────────────────────────────────────
 const useStore = create(
   persist(
@@ -198,6 +218,8 @@ const useStore = create(
           },
         })),
 
+      exportWorkspace: () => pickWorkspaceState(get()),
+      importWorkspace: (data) => set(() => ({ ...getSeedState(), ...(data || {}) })),
       resetStore: () => set(() => ({ ...getSeedState() })),
     }),
     { name: getPersistStorageName() }
