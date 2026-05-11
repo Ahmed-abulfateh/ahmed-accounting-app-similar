@@ -5,7 +5,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts'
-import { ArrowUpRight, ArrowDownRight, FileText, ShoppingCart, Landmark } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, FileText, Landmark, RotateCcw } from 'lucide-react'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
@@ -32,6 +32,12 @@ export default function Dashboard() {
   const [rangePreset, setRangePreset] = useState('90d')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
+
+  const restartMonthlyPerformance = () => {
+    setRangePreset('all')
+    setCustomStart('')
+    setCustomEnd('')
+  }
 
   const { startDate, endDate } = useMemo(
     () => getDateRange(rangePreset, customStart, customEnd),
@@ -117,6 +123,12 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        <div className="lg:ml-auto">
+          <button type="button" className="btn-secondary" onClick={restartMonthlyPerformance}>
+            <RotateCcw size={14} /> Restart Monthly Performance
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -128,9 +140,9 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Revenue vs Expenses Chart */}
+        {/* Monthly Performance Chart */}
         <div className="card p-5 lg:col-span-2">
-          <h2 className="font-semibold text-gray-800 mb-4">Revenue vs Expenses</h2>
+          <h2 className="font-semibold text-gray-800 mb-4">Monthly Performance</h2>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={monthlyData}>
               <defs>
