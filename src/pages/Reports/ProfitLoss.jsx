@@ -6,13 +6,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Download } from 'lucide-react'
 
 const monthlyData = [
-  { month: 'Jan', revenue: 12000, expenses: 7000 },
-  { month: 'Feb', revenue: 18000, expenses: 9000 },
-  { month: 'Mar', revenue: 15000, expenses: 8500 },
-  { month: 'Apr', revenue: 22000, expenses: 11000 },
-  { month: 'May', revenue: 19000, expenses: 10000 },
-  { month: 'Jun', revenue: 28000, expenses: 13000 },
-  { month: 'Jul', revenue: 24000, expenses: 12000 },
+  { month: 'Jan', revenue: 0, expenses: 0 },
+  { month: 'Feb', revenue: 0, expenses: 0 },
+  { month: 'Mar', revenue: 0, expenses: 0 },
+  { month: 'Apr', revenue: 0, expenses: 0 },
+  { month: 'May', revenue: 0, expenses: 0 },
+  { month: 'Jun', revenue: 0, expenses: 0 },
+  { month: 'Jul', revenue: 0, expenses: 0 },
 ].map((d) => ({ ...d, profit: d.revenue - d.expenses }))
 
 export default function ProfitLoss() {

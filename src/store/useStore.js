@@ -97,6 +97,18 @@ const useStore = create(
 
       // ── customers ──
       addCustomer: (c) => set((s) => ({ customers: [...s.customers, { ...c, id: uuidv4(), balance: 0, createdAt: dayjs().format('YYYY-MM-DD') }] })),
+      addCustomersBulk: (rows) =>
+        set((s) => ({
+          customers: [
+            ...s.customers,
+            ...rows.map((c) => ({
+              ...c,
+              id: uuidv4(),
+              balance: Number(c.balance || 0),
+              createdAt: c.createdAt || dayjs().format('YYYY-MM-DD'),
+            })),
+          ],
+        })),
       updateCustomer: (id, data) => set((s) => ({ customers: s.customers.map((c) => (c.id === id ? { ...c, ...data } : c)) })),
       deleteCustomer: (id) => set((s) => ({ customers: s.customers.filter((c) => c.id !== id) })),
 

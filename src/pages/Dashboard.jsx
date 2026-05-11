@@ -5,7 +5,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts'
-import { ArrowUpRight, ArrowDownRight, FileText, Landmark, RotateCcw } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, FileText, Landmark } from 'lucide-react'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
@@ -32,12 +32,6 @@ export default function Dashboard() {
   const [rangePreset, setRangePreset] = useState('90d')
   const [customStart, setCustomStart] = useState('')
   const [customEnd, setCustomEnd] = useState('')
-
-  const restartMonthlyPerformance = () => {
-    setRangePreset('all')
-    setCustomStart('')
-    setCustomEnd('')
-  }
 
   const { startDate, endDate } = useMemo(
     () => getDateRange(rangePreset, customStart, customEnd),
@@ -123,12 +117,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        <div className="lg:ml-auto">
-          <button type="button" className="btn-secondary" onClick={restartMonthlyPerformance}>
-            <RotateCcw size={14} /> Restart Monthly Performance
-          </button>
-        </div>
       </div>
 
       {/* Stats */}
@@ -240,29 +228,6 @@ function buildMonthlySeries(invoices, bills, expenses, startDate, endDate) {
     })
     cursor.setMonth(cursor.getMonth() + 1)
   }
-
-  const byKey = Object.fromEntries(months.map((m) => [m.key, m]))
-
-  invoices.forEach((inv) => {
-    const d = new Date(inv.date)
-    if (Number.isNaN(d.getTime())) return
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    if (byKey[key]) byKey[key].revenue += Number(inv.total || 0)
-  })
-
-  bills.forEach((bill) => {
-    const d = new Date(bill.date)
-    if (Number.isNaN(d.getTime())) return
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    if (byKey[key]) byKey[key].outflow += Number(bill.total || 0)
-  })
-
-  expenses.forEach((exp) => {
-    const d = new Date(exp.date)
-    if (Number.isNaN(d.getTime())) return
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    if (byKey[key]) byKey[key].outflow += Number(exp.amount || 0)
-  })
 
   return months
 }

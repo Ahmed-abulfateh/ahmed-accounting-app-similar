@@ -1,16 +1,45 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import * as XLSX from 'xlsx'
 import useStore from '../../store/useStore'
 import PageHeader from '../../components/ui/PageHeader'
 import Modal from '../../components/ui/Modal'
 import { fmt, fmtDate } from '../../utils/format'
-import { Plus, Pencil, Trash2, Search, Mail, Phone } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Mail, Phone, Upload, FileSpreadsheet } from 'lucide-react'
 
 const emptyForm = { name: '', email: '', phone: '', address: '' }
+const CUSTOMER_IMPORT_SCHEMA = [
+  { column: 'name', required: 'Yes', notes: 'Customer or company name' },
+  { column: 'email', required: 'No', notes: 'Billing/contact email' },
+  { column: 'phone', required: 'No', notes: 'Phone number' },
+  { column: 'address', required: 'No', notes: 'Postal address' },
+  { column: 'balance', required: 'No', notes: 'Opening balance, default 0' },
+  { column: 'createdAt', required: 'No', notes: 'Date in YYYY-MM-DD, default today' },
+]
+
+const CUSTOMER_IMPORT_EXAMPLE_ROWS = [
+  {
+    name: 'Acme Corp',
+    email: 'billing@acme.com',
+    phone: '+1-555-0101',
+    address: '123 Main St, NY',
+    balance: 4500,
+    createdAt: '2024-01-10',
+  },
+  {
+    name: 'Globex Ltd',
+    email: 'accounts@globex.com',
+    phone: '+1-555-0102',
+    address: '456 Oak Ave, CA',
+    balance: 0,
+    createdAt: '2024-02-15',
+  },
+]
 
 export default function CustomersList() {
   const customers      = useStore((s) => s.customers)
   const invoices       = useStore((s) => s.invoices)
   const addCustomer    = useStore((s) => s.addCustomer)
+  const addCustomersBulk = useStore((s) => s.addCustomersBulk)
   const updateCustomer = useStore((s) => s.updateCustomer)
   const deleteCustomer = useStore((s) => s.deleteCustomer)
 
@@ -18,6 +47,8 @@ export default function CustomersList() {
   const [editing, setEditing] = useState(null)
   const [form, setForm]       = useState(emptyForm)
   const [search, setSearch]   = useState('')
+  const [importResult, setImportResult] = useState(null)
+  const fileInputRef = useRef(null)
 
   const customerBalance = (id) => invoices.filter(i => i.customerId === id && i.status !== 'paid').reduce((a, b) => a + b.total, 0)
   const invoiceCount = (id) => invoices.filter(i => i.customerId === id).length
@@ -37,13 +68,166 @@ export default function CustomersList() {
     setModal(null)
   }
 
+  const downloadTemplate = () => {
+    const rows = [
+      ['name', 'email', 'phone', 'address', 'balance', 'createdAt'],
+      ['Acme Corp', 'billing@acme.com', '+1-555-0101', '123 Main St, NY', 4500, '2024-01-10'],
+      ['Globex Ltd', 'accounts@globex.com', '+1-555-0102', '456 Oak Ave, CA', 0, '2024-02-15'],
+    ]
+    const ws = XLSX.utils.aoa_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Customers')
+    XLSX.writeFile(wb, 'customers-import-template.xlsx')
+  }
+
+  const triggerFilePicker = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImportExcel = async (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    try {
+      const buffer = await file.arrayBuffer()
+      const workbook = XLSX.read(buffer, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const sheet = workbook.Sheets[sheetName]
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
+
+      if (!rows.length) {
+        setImportResult({ imported: 0, skipped: 0, message: 'Sheet is empty.' })
+        return
+      }
+
+      const headers = rows[0].map((h) => normalizeHeader(h))
+      const dataRows = rows.slice(1)
+      const parsedCustomers = []
+      let skipped = 0
+
+      dataRows.forEach((row) => {
+        const record = {}
+        headers.forEach((key, index) => {
+          record[key] = row[index]
+        })
+
+        const name = String(record.name || '').trim()
+        if (!name) {
+          skipped += 1
+          return
+        }
+
+        const createdAt = parseExcelDate(record.createdat)
+        parsedCustomers.push({
+          name,
+          email: String(record.email || '').trim(),
+          phone: String(record.phone || '').trim(),
+          address: String(record.address || '').trim(),
+          balance: Number(record.balance || 0),
+          createdAt,
+        })
+      })
+
+      if (!parsedCustomers.length) {
+        setImportResult({ imported: 0, skipped, message: 'No valid customer rows found. Make sure the name column is filled.' })
+        return
+      }
+
+      addCustomersBulk(parsedCustomers)
+      setImportResult({
+        imported: parsedCustomers.length,
+        skipped,
+        message: `Imported ${parsedCustomers.length} customers${skipped ? `, skipped ${skipped}` : ''}.`,
+      })
+    } catch (error) {
+      setImportResult({ imported: 0, skipped: 0, message: `Import failed: ${error.message}` })
+    }
+  }
+
   return (
     <div className="p-8">
       <PageHeader
         title="Customers"
         subtitle="Manage your customer contacts"
-        actions={<button className="btn-primary" onClick={openAdd}><Plus size={16} /> New Customer</button>}
+        actions={
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImportExcel}
+              className="hidden"
+            />
+            <button className="btn-secondary" onClick={downloadTemplate}><FileSpreadsheet size={16} /> Template</button>
+            <button className="btn-secondary" onClick={triggerFilePicker}><Upload size={16} /> Import Excel</button>
+            <button className="btn-primary" onClick={openAdd}><Plus size={16} /> New Customer</button>
+          </>
+        }
       />
+
+      {importResult && (
+        <div className="card p-4 mb-5 text-sm">
+          <p className="font-semibold text-slate-800">Excel Import Result</p>
+          <p className="text-slate-600 mt-1">{importResult.message}</p>
+        </div>
+      )}
+
+      <div className="card mb-5 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+          <p className="font-semibold text-slate-800">Excel Upload Schema (Customers Sheet)</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-slate-500">
+                <th className="px-4 py-2.5 font-medium">Column</th>
+                <th className="px-4 py-2.5 font-medium">Required</th>
+                <th className="px-4 py-2.5 font-medium">Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {CUSTOMER_IMPORT_SCHEMA.map((item) => (
+                <tr key={item.column}>
+                  <td className="px-4 py-2.5 font-mono text-slate-700">{item.column}</td>
+                  <td className="px-4 py-2.5 text-slate-700">{item.required}</td>
+                  <td className="px-4 py-2.5 text-slate-500">{item.notes}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50">
+          <p className="font-semibold text-slate-800">Example Upload Table (2 Customers)</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-left text-slate-500">
+                <th className="px-4 py-2.5 font-medium">name</th>
+                <th className="px-4 py-2.5 font-medium">email</th>
+                <th className="px-4 py-2.5 font-medium">phone</th>
+                <th className="px-4 py-2.5 font-medium">address</th>
+                <th className="px-4 py-2.5 font-medium">balance</th>
+                <th className="px-4 py-2.5 font-medium">createdAt</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {CUSTOMER_IMPORT_EXAMPLE_ROWS.map((row, index) => (
+                <tr key={`${row.email}-${index}`}>
+                  <td className="px-4 py-2.5 text-slate-700">{row.name}</td>
+                  <td className="px-4 py-2.5 text-slate-700">{row.email}</td>
+                  <td className="px-4 py-2.5 text-slate-700">{row.phone}</td>
+                  <td className="px-4 py-2.5 text-slate-700">{row.address}</td>
+                  <td className="px-4 py-2.5 text-slate-700">{row.balance}</td>
+                  <td className="px-4 py-2.5 font-mono text-slate-700">{row.createdAt}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div className="flex gap-3 mb-5">
         <div className="relative">
@@ -113,4 +297,31 @@ export default function CustomersList() {
       )}
     </div>
   )
+}
+
+function normalizeHeader(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replaceAll(' ', '')
+    .replaceAll('_', '')
+}
+
+function parseExcelDate(value) {
+  const text = String(value || '').trim()
+  if (!text) return undefined
+
+  // Numeric Excel date serial support.
+  if (!Number.isNaN(Number(text)) && text.length < 8) {
+    const parsed = XLSX.SSF.parse_date_code(Number(text))
+    if (parsed) {
+      const month = String(parsed.m).padStart(2, '0')
+      const day = String(parsed.d).padStart(2, '0')
+      return `${parsed.y}-${month}-${day}`
+    }
+  }
+
+  const date = new Date(text)
+  if (Number.isNaN(date.getTime())) return undefined
+  return date.toISOString().slice(0, 10)
 }
