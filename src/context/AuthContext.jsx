@@ -17,20 +17,34 @@ export function AuthProvider({ children }) {
     if (configured) {
       return configured.replace(/\/$/, '')
     }
+    return ''
+  }
 
-    if (typeof window !== 'undefined') {
-      const { origin, hostname } = window.location
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:4000'
+  const buildApiUrl = (path, base = getApiBase()) => (base ? `${base}${path}` : path)
+
+  const apiFetch = async (path, init = {}) => {
+    const primaryBase = getApiBase()
+    const primaryUrl = buildApiUrl(path, primaryBase)
+
+    try {
+      return await fetch(primaryUrl, init)
+    } catch (error) {
+      const isNetworkError = error instanceof TypeError
+      const canRetryLocally =
+        !!primaryBase &&
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
+      if (isNetworkError && canRetryLocally) {
+        return fetch(buildApiUrl(path, ''), init)
       }
-      return origin
-    }
 
-    return 'http://localhost:4000'
+      throw error
+    }
   }
 
   const getNetworkErrorMessage = () => {
-    const apiBase = getApiBase()
+    const apiBase = getApiBase() || window.location.origin
     return `Unable to reach server (${apiBase}). Check backend status, CORS, and VITE_API_URL.`
   }
 
@@ -56,7 +70,7 @@ export function AuthProvider({ children }) {
 
   const loadWorkspace = async (authToken) => {
     try {
-      const res = await fetch(`${getApiBase()}/api/workspace`, {
+      const res = await apiFetch('/api/workspace', {
         headers: { Authorization: `Bearer ${authToken}` },
       })
       if (!res.ok) {
@@ -75,7 +89,7 @@ export function AuthProvider({ children }) {
   const saveWorkspace = async (authToken, { keepalive = false } = {}) => {
     try {
       const workspace = useStore.getState().exportWorkspace()
-      const res = await fetch(`${getApiBase()}/api/workspace`, {
+      const res = await apiFetch('/api/workspace', {
         method: 'PUT',
         keepalive,
         headers: {
@@ -148,7 +162,7 @@ export function AuthProvider({ children }) {
 
   const verifyToken = async (t) => {
     try {
-      const res = await fetch(`${getApiBase()}/api/auth/verify`, {
+      const res = await apiFetch('/api/auth/verify', {
         method: 'POST',
         headers: { Authorization: `Bearer ${t}` },
       })
@@ -170,7 +184,7 @@ export function AuthProvider({ children }) {
 
   const signup = async (email, password, name) => {
     try {
-      const res = await fetch(`${getApiBase()}/api/auth/signup`, {
+      const res = await apiFetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name }),
@@ -195,7 +209,7 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      const res = await fetch(`${getApiBase()}/api/auth/login`, {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
