@@ -66,13 +66,22 @@ function AuthRoutes() {
 
 export default function App() {
   const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')
-  const Router = isGitHubPages ? HashRouter : BrowserRouter
+
+  if (isGitHubPages) {
+    return (
+      <HashRouter>
+        <AuthProvider>
+          <AuthRoutes />
+        </AuthProvider>
+      </HashRouter>
+    )
+  }
 
   return (
-    <Router basename={import.meta.env.BASE_URL}>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <AuthRoutes />
       </AuthProvider>
-    </Router>
+    </BrowserRouter>
   )
 }
