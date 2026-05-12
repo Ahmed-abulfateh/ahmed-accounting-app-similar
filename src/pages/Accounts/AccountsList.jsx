@@ -48,7 +48,7 @@ export default function AccountsList() {
   })).filter((g) => g.rows.length > 0)
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Chart of Accounts"
         subtitle="Manage your account structure"
@@ -63,9 +63,9 @@ export default function AccountsList() {
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-          <input className="form-input pl-9 w-56" placeholder="Search accounts…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="form-input pl-9 w-full sm:w-56" placeholder="Search accounts..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="form-select w-40" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+        <select className="form-select w-full sm:w-40" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
           <option>All</option>
           {TYPES.map((t) => <option key={t}>{t}</option>)}
         </select>
@@ -75,37 +75,39 @@ export default function AccountsList() {
       <div className="space-y-6">
         {groupedByType.map(({ type, rows }) => (
           <div key={type} className="card overflow-hidden">
-            <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 font-semibold text-gray-700 text-sm flex justify-between">
+            <div className="px-4 sm:px-5 py-3 bg-gray-50 border-b border-gray-100 font-semibold text-gray-700 text-sm flex justify-between">
               <span>{type}</span>
               <span className="text-gray-400">{fmt(rows.reduce((a, b) => a + b.balance, 0))}</span>
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-left text-gray-500">
-                  <th className="px-5 py-2.5 font-medium">Code</th>
-                  <th className="px-5 py-2.5 font-medium">Name</th>
-                  <th className="px-5 py-2.5 font-medium">Normal</th>
-                  <th className="px-5 py-2.5 font-medium text-right">Balance</th>
-                  <th className="px-5 py-2.5 font-medium w-20"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {rows.map((a) => (
-                  <tr key={a.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-2.5 font-mono text-gray-500">{a.code}</td>
-                    <td className="px-5 py-2.5 font-medium text-gray-900">{a.name}</td>
-                    <td className="px-5 py-2.5"><span className="badge badge-gray capitalize">{a.normal}</span></td>
-                    <td className="px-5 py-2.5 text-right font-medium">{fmt(a.balance)}</td>
-                    <td className="px-5 py-2.5">
-                      <div className="flex gap-1 justify-end">
-                        <button onClick={() => openEdit(a)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600"><Pencil size={14} /></button>
-                        <button onClick={() => deleteAccount(a.id)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-left text-gray-500">
+                    <th className="px-4 sm:px-5 py-2.5 font-medium">Code</th>
+                    <th className="px-4 sm:px-5 py-2.5 font-medium">Name</th>
+                    <th className="px-4 sm:px-5 py-2.5 font-medium">Normal</th>
+                    <th className="px-4 sm:px-5 py-2.5 font-medium text-right">Balance</th>
+                    <th className="px-4 sm:px-5 py-2.5 font-medium w-28"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {rows.map((a) => (
+                    <tr key={a.id} className="hover:bg-gray-50">
+                      <td className="px-4 sm:px-5 py-2.5 font-mono text-gray-500">{a.code}</td>
+                      <td className="px-4 sm:px-5 py-2.5 font-medium text-gray-900">{a.name}</td>
+                      <td className="px-4 sm:px-5 py-2.5"><span className="badge badge-gray capitalize">{a.normal}</span></td>
+                      <td className="px-4 sm:px-5 py-2.5 text-right font-medium">{fmt(a.balance)}</td>
+                      <td className="px-4 sm:px-5 py-2.5">
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={() => openEdit(a)} className="btn-small bg-white border border-gray-200 text-gray-400 hover:text-blue-600" aria-label={`Edit ${a.name}`}><Pencil size={14} /></button>
+                          <button onClick={() => deleteAccount(a.id)} className="btn-small bg-white border border-gray-200 text-gray-400 hover:text-red-600" aria-label={`Delete ${a.name}`}><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ))}
       </div>
@@ -114,7 +116,7 @@ export default function AccountsList() {
       {modal === 'form' && (
         <Modal title={editing ? 'Edit Account' : 'New Account'} onClose={() => setModal(null)}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">Code *</label>
                 <input className="form-input" required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="e.g. 1010" />

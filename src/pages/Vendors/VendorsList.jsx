@@ -38,7 +38,7 @@ export default function VendorsList() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Vendors"
         subtitle="Manage your vendor contacts"
@@ -48,29 +48,29 @@ export default function VendorsList() {
       <div className="flex gap-3 mb-5">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-          <input className="form-input pl-9 w-64" placeholder="Search vendors…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="form-input pl-9 w-full sm:w-64" placeholder="Search vendors..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map((v) => (
-          <div key={v.id} className="card p-5 hover:shadow-md transition-shadow">
+          <div key={v.id} className="card p-4 sm:p-5 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-3">
-              <div>
+              <div className="min-w-0 flex-1">
                 <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-lg mb-2">
                   {v.name[0]}
                 </div>
-                <h3 className="font-semibold text-gray-900">{v.name}</h3>
+                <h3 className="font-semibold text-gray-900 truncate">{v.name}</h3>
                 <p className="text-xs text-gray-400 mt-0.5">Since {fmtDate(v.createdAt)}</p>
               </div>
-              <div className="flex gap-1">
-                <button onClick={() => openEdit(v)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600"><Pencil size={14} /></button>
-                <button onClick={() => deleteVendor(v.id)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+              <div className="flex gap-2 flex-shrink-0">
+                <button onClick={() => openEdit(v)} className="btn-small bg-white border border-gray-200 text-gray-400 hover:text-blue-600" aria-label={`Edit ${v.name}`}><Pencil size={14} /></button>
+                <button onClick={() => deleteVendor(v.id)} className="btn-small bg-white border border-gray-200 text-gray-400 hover:text-red-600" aria-label={`Delete ${v.name}`}><Trash2 size={14} /></button>
               </div>
             </div>
             <div className="space-y-1.5 text-sm text-gray-500">
-              {v.email && <div className="flex items-center gap-2"><Mail size={13} /><span>{v.email}</span></div>}
-              {v.phone && <div className="flex items-center gap-2"><Phone size={13} /><span>{v.phone}</span></div>}
+              {v.email && <div className="flex items-center gap-2 min-w-0"><Mail size={13} /><span className="truncate">{v.email}</span></div>}
+              {v.phone && <div className="flex items-center gap-2 min-w-0"><Phone size={13} /><span className="truncate">{v.phone}</span></div>}
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between text-sm">
               <span className="text-gray-500">{billCount(v.id)} bills</span>

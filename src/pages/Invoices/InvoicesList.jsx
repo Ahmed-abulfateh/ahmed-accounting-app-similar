@@ -187,7 +187,7 @@ export default function InvoicesList() {
       </div>
 
       <div className="card overflow-x-auto">
-        <table className="w-full text-xs sm:text-sm">
+        <table className="w-full min-w-[860px] text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-gray-500">
               <th className="px-3 sm:px-5 py-3 font-medium">Number</th>

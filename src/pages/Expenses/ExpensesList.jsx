@@ -47,7 +47,7 @@ export default function ExpensesList() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Expenses"
         subtitle="Track and categorize all business expenses"
@@ -55,7 +55,7 @@ export default function ExpensesList() {
       />
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
         {['All', ...CATEGORIES.slice(0, 5)].map((cat) => {
           const amt = expenses.filter(e => cat === 'All' || e.category === cat).reduce((a, e) => a + e.amount, 0)
           return (
@@ -68,23 +68,24 @@ export default function ExpensesList() {
         })}
       </div>
 
-      <div className="flex gap-3 mb-5">
+      <div className="flex flex-wrap gap-3 mb-5">
         <div className="relative">
           <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-          <input className="form-input pl-9 w-56" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="form-input pl-9 w-full sm:w-56" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="form-select w-44" value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
+        <select className="form-select w-full sm:w-44" value={catFilter} onChange={(e) => setCatFilter(e.target.value)}>
           <option value="All">All Categories</option>
           {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
       </div>
 
       <div className="card overflow-hidden">
-        <div className="px-5 py-3 bg-gray-50 border-b border-gray-100 flex justify-between text-sm">
+        <div className="px-4 sm:px-5 py-3 bg-gray-50 border-b border-gray-100 flex justify-between text-sm">
           <span className="font-medium text-gray-700">{filtered.length} expenses</span>
           <span className="font-bold text-gray-900">Total: {fmt(total)}</span>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[800px] text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-left text-gray-500">
               <th className="px-5 py-3 font-medium">Date</th>
@@ -106,9 +107,9 @@ export default function ExpensesList() {
                 <td className="px-5 py-3 text-gray-500">{e.description}</td>
                 <td className="px-5 py-3 text-right font-medium text-red-600">{fmt(e.amount)}</td>
                 <td className="px-5 py-3">
-                  <div className="flex gap-1 justify-end">
-                    <button onClick={() => openEdit(e)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600"><Pencil size={14} /></button>
-                    <button onClick={() => deleteExpense(e.id)} className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600"><Trash2 size={14} /></button>
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => openEdit(e)} className="btn-small bg-white border border-gray-200 text-gray-400 hover:text-blue-600" aria-label={`Edit ${e.payee || 'expense'}`}><Pencil size={14} /></button>
+                    <button onClick={() => deleteExpense(e.id)} className="btn-small bg-white border border-gray-200 text-gray-400 hover:text-red-600" aria-label={`Delete ${e.payee || 'expense'}`}><Trash2 size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -118,12 +119,13 @@ export default function ExpensesList() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {modal === 'form' && (
         <Modal title={editing ? 'Edit Expense' : 'New Expense'} onClose={() => setModal(null)}>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">Date *</label>
                 <input type="date" className="form-input" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
@@ -135,7 +137,7 @@ export default function ExpensesList() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">Payee *</label>
                 <input className="form-input" required value={form.payee} onChange={(e) => setForm({ ...form, payee: e.target.value })} placeholder="Who was paid" />
