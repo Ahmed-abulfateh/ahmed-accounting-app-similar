@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import useStore, { switchStoreUser } from '../store/useStore'
 
 const AuthContext = createContext()
+const GITHUB_PAGES_API_FALLBACKS = [
+  'https://ahmed-accounting-app.onrender.com',
+  'https://ahmed-accounting-api.onrender.com',
+]
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -26,6 +30,12 @@ export function AuthProvider({ children }) {
     if (typeof window !== 'undefined') {
       const { hostname, port } = window.location
       const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1'
+      const isGitHubPages = hostname.endsWith('github.io')
+
+      if (isGitHubPages) {
+        return GITHUB_PAGES_API_FALLBACKS[0]
+      }
+
       if (isLocalHost) {
         // Use Vite dev proxy on common Vite ports and same-origin on backend port.
         if (port === '4000' || port === '5173' || port === '5174' || port === '5175') {
@@ -44,8 +54,17 @@ export function AuthProvider({ children }) {
   const apiFetch = async (path, init = {}) => {
     const configuredBase = getConfiguredApiBase()
     const primaryBase = getApiBase()
-    const primaryUrl = buildApiUrl(path, primaryBase)
     const timeoutMs = Number(import.meta.env.VITE_API_TIMEOUT_MS || 10000)
+    const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')
+
+    const baseCandidates = [primaryBase]
+    if (isGitHubPages && !configuredBase) {
+      GITHUB_PAGES_API_FALLBACKS.forEach((base) => {
+        if (!baseCandidates.includes(base)) {
+          baseCandidates.push(base)
+        }
+      })
+    }
 
     const executeFetch = async (url) => {
       const controller = new AbortController()
@@ -61,21 +80,41 @@ export function AuthProvider({ children }) {
       }
     }
 
-    try {
-      return await executeFetch(primaryUrl)
-    } catch (error) {
-      const isNetworkError = error instanceof TypeError || error?.name === 'AbortError'
-      const canRetryLocally =
-        !!configuredBase &&
-        typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    let lastError = null
+    for (let index = 0; index < baseCandidates.length; index += 1) {
+      const base = baseCandidates[index]
+      const url = buildApiUrl(path, base)
 
-      if (isNetworkError && canRetryLocally) {
-        return executeFetch(buildApiUrl(path, ''))
+      try {
+        const res = await executeFetch(url)
+        const hasMoreCandidates = index < baseCandidates.length - 1
+        const isRetryableNotFound = hasMoreCandidates && res.status === 404 && path.startsWith('/api/')
+        if (isRetryableNotFound) {
+          continue
+        }
+        return res
+      } catch (error) {
+        lastError = error
+        const isNetworkError = error instanceof TypeError || error?.name === 'AbortError'
+        const hasMoreCandidates = index < baseCandidates.length - 1
+        if (isNetworkError && hasMoreCandidates) {
+          continue
+        }
+
+        const canRetryLocally =
+          !!configuredBase &&
+          typeof window !== 'undefined' &&
+          (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+
+        if (isNetworkError && canRetryLocally) {
+          return executeFetch(buildApiUrl(path, ''))
+        }
+
+        throw error
       }
-
-      throw error
     }
+
+    throw lastError || new Error('Unable to reach API endpoint')
   }
 
   const getNetworkErrorMessage = () => {
