@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout/Layout'
 import Dashboard     from './pages/Dashboard'
@@ -65,11 +65,14 @@ function AuthRoutes() {
 }
 
 export default function App() {
+  const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')
+  const Router = isGitHubPages ? HashRouter : BrowserRouter
+
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <Router basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <AuthRoutes />
       </AuthProvider>
-    </BrowserRouter>
+    </Router>
   )
 }
