@@ -45,32 +45,36 @@ This project is ready for Render using the blueprint in [render.yaml](render.yam
 1. Push this repository to GitHub.
 2. In Render, choose New + and then Blueprint.
 3. Select this repository.
-4. Render will create two services:
-	 - ahmed-accounting-api (Node backend for email API)
-	 - ahmed-accounting-web (Static frontend)
+4. Render will create one web service that runs both backend APIs and frontend app:
+	 - ahmed-accounting-app
+
+Important:
+
+- The blueprint uses `plan: starter` so the service stays continuously running.
+- On `free`, Render may sleep after inactivity.
 
 ### 2) Required Environment Variables
 
-Set these on the backend service (ahmed-accounting-api):
+Set these on the web service (ahmed-accounting-app):
 
 - SMTP_HOST
 - SMTP_PORT
 - SMTP_USER
 - SMTP_PASS
 - WORKSPACE_EMAIL
-- FRONTEND_URL
 - MONGODB_URI
 - JWT_SECRET
+
+Notes:
+
+- `FRONTEND_URL` is auto-set from the same Render service URL in `render.yaml`.
+- Keep `VITE_API_URL` unset for this single-service deployment so frontend uses same-origin `/api`.
 
 Production safety notes:
 
 - `JWT_SECRET` must be set to a strong unique value.
 - The server enforces JWT secret safety in production mode.
 - `FRONTEND_URL` can be comma-separated for multiple origins.
-
-Set this on the frontend service (ahmed-accounting-web):
-
-- VITE_API_URL (backend URL, example: https://ahmed-accounting-api.onrender.com)
 
 ### 3) Notes
 

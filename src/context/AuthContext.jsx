@@ -12,31 +12,66 @@ export function AuthProvider({ children }) {
   const hasVerifiedRef = useRef(false)
   const loggingOutRef = useRef(false)
 
-  const getApiBase = () => {
+  const getConfiguredApiBase = () => {
     const configured = (import.meta.env.VITE_API_URL || '').trim()
+    return configured ? configured.replace(/\/$/, '') : ''
+  }
+
+  const getApiBase = () => {
+    const configured = getConfiguredApiBase()
     if (configured) {
-      return configured.replace(/\/$/, '')
+      return configured
     }
+
+    if (typeof window !== 'undefined') {
+      const { hostname, port } = window.location
+      const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1'
+      if (isLocalHost) {
+        // Use Vite dev proxy on common Vite ports and same-origin on backend port.
+        if (port === '4000' || port === '5173' || port === '5174' || port === '5175') {
+          return ''
+        }
+        // Fallback for local static previews where no proxy is available.
+        return 'http://localhost:4000'
+      }
+    }
+
     return ''
   }
 
   const buildApiUrl = (path, base = getApiBase()) => (base ? `${base}${path}` : path)
 
   const apiFetch = async (path, init = {}) => {
+    const configuredBase = getConfiguredApiBase()
     const primaryBase = getApiBase()
     const primaryUrl = buildApiUrl(path, primaryBase)
+    const timeoutMs = Number(import.meta.env.VITE_API_TIMEOUT_MS || 10000)
+
+    const executeFetch = async (url) => {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+      const { signal: providedSignal, ...restInit } = init
+      const signal = providedSignal || controller.signal
+
+      try {
+        return await fetch(url, { ...restInit, signal })
+      } finally {
+        clearTimeout(timeoutId)
+      }
+    }
 
     try {
-      return await fetch(primaryUrl, init)
+      return await executeFetch(primaryUrl)
     } catch (error) {
-      const isNetworkError = error instanceof TypeError
+      const isNetworkError = error instanceof TypeError || error?.name === 'AbortError'
       const canRetryLocally =
-        !!primaryBase &&
+        !!configuredBase &&
         typeof window !== 'undefined' &&
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
 
       if (isNetworkError && canRetryLocally) {
-        return fetch(buildApiUrl(path, ''), init)
+        return executeFetch(buildApiUrl(path, ''))
       }
 
       throw error
@@ -45,7 +80,7 @@ export function AuthProvider({ children }) {
 
   const getNetworkErrorMessage = () => {
     const apiBase = getApiBase() || window.location.origin
-    return `Unable to reach server (${apiBase}). Check backend status, CORS, and VITE_API_URL.`
+    return `Unable to reach server (${apiBase}). Start both apps with \"npm run dev:full\" and verify backend/CORS/VITE_API_URL.`
   }
 
   const parseResponseData = async (res) => {
@@ -198,10 +233,14 @@ export function AuthProvider({ children }) {
         await loadWorkspace(data.token)
         return data
       }
-      throw new Error(data.message || 'Signup failed')
+      const fallbackMessage = !res.ok && res.status >= 500 ? getNetworkErrorMessage() : 'Signup failed'
+      throw new Error(data.message || data.error || fallbackMessage)
     } catch (error) {
       if (error instanceof TypeError) {
         throw new Error(getNetworkErrorMessage())
+      }
+      if (error?.name === 'AbortError') {
+        throw new Error(`Server request timed out. ${getNetworkErrorMessage()}`)
       }
       throw error
     }
@@ -223,10 +262,14 @@ export function AuthProvider({ children }) {
         await loadWorkspace(data.token)
         return data
       }
-      throw new Error(data.message || 'Login failed')
+      const fallbackMessage = !res.ok && res.status >= 500 ? getNetworkErrorMessage() : 'Login failed'
+      throw new Error(data.message || data.error || fallbackMessage)
     } catch (error) {
       if (error instanceof TypeError) {
         throw new Error(getNetworkErrorMessage())
+      }
+      if (error?.name === 'AbortError') {
+        throw new Error(`Server request timed out. ${getNetworkErrorMessage()}`)
       }
       throw error
     }

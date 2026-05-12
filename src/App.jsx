@@ -40,31 +40,26 @@ function AuthRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route
-        path="*"
         element={
           <ProtectedRoute>
-            <Routes>
-              <Route element={<Layout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="accounts"  element={<AccountsList />} />
-                <Route path="journal"   element={<JournalEntries />} />
-                <Route path="customers" element={<CustomersList />} />
-                <Route path="invoices"  element={<InvoicesList />} />
-                <Route path="vendors"   element={<VendorsList />} />
-                <Route path="bills"     element={<BillsList />} />
-                <Route path="expenses"  element={<ExpensesList />} />
-                <Route path="reports">
-                  <Route path="balance-sheet" element={<BalanceSheet />} />
-                  <Route path="profit-loss"   element={<ProfitLoss />} />
-                  <Route path="trial-balance" element={<TrialBalance />} />
-                </Route>
-                <Route path="settings"  element={<Settings />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
+            <Layout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/accounts" element={<AccountsList />} />
+        <Route path="/journal" element={<JournalEntries />} />
+        <Route path="/customers" element={<CustomersList />} />
+        <Route path="/invoices" element={<InvoicesList />} />
+        <Route path="/vendors" element={<VendorsList />} />
+        <Route path="/bills" element={<BillsList />} />
+        <Route path="/expenses" element={<ExpensesList />} />
+        <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
+        <Route path="/reports/profit-loss" element={<ProfitLoss />} />
+        <Route path="/reports/trial-balance" element={<TrialBalance />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
