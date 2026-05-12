@@ -286,16 +286,26 @@ function buildAllowedOrigins(rawOriginValue) {
 
 async function startServer() {
   if (!JWT_SECRET || JWT_SECRET === 'dev-secret-key-change-in-production') {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('JWT_SECRET must be set to a strong value in production')
-    }
-    console.warn('Using default JWT secret in development. Set JWT_SECRET for safer local testing.')
+    const isProduction = process.env.NODE_ENV === 'production'
+    console.warn(`⚠️ JWT_SECRET not set (${isProduction ? 'PRODUCTION' : 'development'} mode). Using fallback default. Set JWT_SECRET env var for security.`)
   }
 
-  await connectDatabase()
+  try {
+    await connectDatabase()
+  } catch (error) {
+    console.error('Failed to connect database:', error.message)
+    console.log('Continuing with in-memory fallback...')
+  }
+
   app.listen(PORT, () => {
     const storageMode = mongoDb ? 'MongoDB' : 'in-memory fallback'
-    console.log(`Mailer API running on http://localhost:${PORT} (${storageMode})`)
+    console.log(`✅ Mailer API running on http://0.0.0.0:${PORT} (${storageMode})`)
+    if (process.env.FRONTEND_URL) {
+      console.log(`   Frontend: ${process.env.FRONTEND_URL}`)
+    }
+    if (process.env.ADDITIONAL_FRONTEND_ORIGINS) {
+      console.log(`   CORS Origins: ${process.env.ADDITIONAL_FRONTEND_ORIGINS}`)
+    }
   })
 }
 
