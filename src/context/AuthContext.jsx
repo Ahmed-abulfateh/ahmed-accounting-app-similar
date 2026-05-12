@@ -3,8 +3,8 @@ import useStore, { switchStoreUser } from '../store/useStore'
 
 const AuthContext = createContext()
 const GITHUB_PAGES_API_FALLBACKS = [
+  'https://ahmed-accounting-app-similar.onrender.com',
   'https://ahmed-accounting-app.onrender.com',
-  'https://ahmed-accounting-api.onrender.com',
 ]
 
 export function AuthProvider({ children }) {
